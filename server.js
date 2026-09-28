@@ -1,4 +1,4 @@
-// server.js — RK RAJA MASTI BOT v6 (Full + Stop + Retry Limit)
+// server.js — RK RAJA MASTI BOT v7 (C3C + Cookies Mode)
 const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
@@ -35,7 +35,7 @@ const SIGNATURE = '\n\n❥ RK RAJA XWD ❥';
 const SEPARATOR = '\n━━━━━━━━━━━━━━━━━';
 const PREFIXES = ['/', '.', '#', '@'];
 const KICK_LIMIT = 3;
-const MAX_RETRIES = 3;              // ← retry limit
+const MAX_RETRIES = 3;
 
 const STARTUP_MSG =
 `╔══════════════════════════╗
@@ -57,13 +57,41 @@ let botAPI = null, adminID = null, botID = null;
 let prefix = '/', currentCookies = null;
 let userData = {}, lastReply = {}, groupLocks = {}, spamCount = {};
 let isStopped = false;
-let retryCount = 0;                 // ← retry counter
+let retryCount = 0;
 
 // ================= LOG =================
 function emitLog(msg, isErr = false) {
   const line = `[${new Date().toISOString()}] ${isErr ? 'ERROR: ' : 'INFO: '}${msg}`;
   console.log(line);
   io.emit('botlog', line);
+}
+
+// ==================================================
+// =========== RAW COOKIE STRING -> APPSTATE ========
+// ==================================================
+function cookieStringToAppState(str) {
+  // Input: "c_user=1000123; xs=abc; datr=xyz; sb=...; fr=..."
+  const parts = String(str).split(/;\s*/);
+  const arr = [];
+  const now = Math.floor(Date.now() / 1000);
+  for (const p of parts) {
+    if (!p) continue;
+    const idx = p.indexOf('=');
+    if (idx === -1) continue;
+    const key = p.slice(0, idx).trim();
+    const value = p.slice(idx + 1).trim();
+    if (!key || !value) continue;
+    arr.push({
+      key,
+      value,
+      domain: '.facebook.com',
+      path: '/',
+      hostOnly: false,
+      creation: now,
+      lastAccessed: now
+    });
+  }
+  return arr;
 }
 
 // ==================================================
@@ -501,7 +529,7 @@ async function announceBotOnline(api) {
   } catch (e) { emitLog('Announce err: ' + e.message, true); }
 }
 
-// ================= LOGIN (RETRY LIMITED) =================
+// ================= LOGIN =================
 function initializeBot(cookies) {
   isStopped = false;
   emitLog(`Initializing bot... (attempt ${retryCount + 1}/${MAX_RETRIES})`);
@@ -512,28 +540,25 @@ function initializeBot(cookies) {
       if (err) {
         const msg = err.message || JSON.stringify(err);
 
-        // Agar Facebook block wala error hai toh retry band karo
         if (msg.includes('blocked') || msg.includes('userID') || msg.includes('verify')) {
           emitLog('❌ Facebook ne login block kar diya!', true);
-          emitLog('👉 Solution: Phone browser me FB login karo, verify karo, phir nayi C3C nikalo.', true);
-          emitLog('🛑 Retry band. Naya C3C daalo aur Start dabao.', true);
+          emitLog('👉 Phone browser me FB login karo, verify karo, phir nayi C3C/Cookies nikalo.', true);
+          emitLog('🛑 Retry band. Naya data daalo aur Start dabao.', true);
           retryCount = 0;
-          return; // retry NAHI
+          return;
         }
 
-        // Baaki errors pe 3 baar tak retry
         retryCount++;
         if (retryCount < MAX_RETRIES && !isStopped) {
           emitLog(`⚠️ Login err: ${msg}. Retry ${retryCount}/${MAX_RETRIES} in 15s...`, true);
           setTimeout(() => initializeBot(cookies), 15000);
         } else {
-          emitLog('🛑 Max retries reached. Naya C3C daalo.', true);
+          emitLog('🛑 Max retries reached. Naya C3C/Cookies daalo.', true);
           retryCount = 0;
         }
         return;
       }
 
-      // Login success
       retryCount = 0;
 
       if (isStopped) {
@@ -889,19 +914,46 @@ app.use(bodyParser.json({ limit: '10mb' }));
 app.use(express.static('public'));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
+// ============ /configure — C3C + Cookies dono ============
 app.post('/configure', (req, res) => {
   try {
-    let { cookies, adminID: aID, prefix: pfx, botID: bID } = req.body;
-    if (typeof cookies === 'string') cookies = JSON.parse(cookies);
-    if (!Array.isArray(cookies) || cookies.length === 0)
-      return res.status(400).send('❌ Invalid C3C');
+    let { cookies, cookieString, adminID: aID, prefix: pfx, botID: bID, mode } = req.body;
+
+    // ---- C3C array mode ----
+    if (mode === 'c3c' || (cookies && !cookieString)) {
+      if (typeof cookies === 'string') {
+        try { cookies = JSON.parse(cookies); } catch (e) {
+          return res.status(400).send('❌ C3C JSON parse error: ' + e.message);
+        }
+      }
+      if (!Array.isArray(cookies) || cookies.length === 0)
+        return res.status(400).send('❌ Invalid C3C array');
+      emitLog(`🍪 C3C mode — ${cookies.length} entries`);
+    }
+    // ---- Raw cookie string mode ----
+    else if (mode === 'cookies' || cookieString) {
+      if (!cookieString || typeof cookieString !== 'string')
+        return res.status(400).send('❌ Cookies string required');
+      cookies = cookieStringToAppState(cookieString);
+      if (!cookies.length)
+        return res.status(400).send('❌ Cookies parse fail — format galat hai');
+      const keys = cookies.map(c => c.key);
+      if (!keys.includes('c_user') || !keys.includes('xs'))
+        return res.status(400).send('❌ Cookies me c_user aur xs hona zaroori hai');
+      emitLog(`📝 Raw cookies mode — ${cookies.length} entries converted`);
+    } else {
+      return res.status(400).send('❌ No cookies provided');
+    }
+
     if (!aID) return res.status(400).send('❌ Admin ID required');
+
     adminID = String(aID).trim();
     prefix = PREFIXES.includes(pfx) ? pfx : '/';
     if (bID) botID = String(bID).trim();
-    retryCount = 0; // naye C3C pe retry reset
+    retryCount = 0;
     isStopped = false;
-    emitLog(`Admin:${adminID} Prefix:${prefix} BotID:${botID || 'auto'}`);
+
+    emitLog(`Admin:${adminID} Prefix:${prefix} BotID:${botID || 'auto'} Mode:${mode || 'c3c'}`);
     res.send('✅ Configured. Bot starting...');
     initializeBot(cookies);
   } catch (e) {
