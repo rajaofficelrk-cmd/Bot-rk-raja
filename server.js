@@ -1,4 +1,4 @@
-// server.js — RK RAJA MASTI BOT v5 (Full + Stop)
+// server.js — RK RAJA MASTI BOT v6 (Full + Stop + Retry Limit)
 const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
@@ -35,17 +35,19 @@ const SIGNATURE = '\n\n❥ RK RAJA XWD ❥';
 const SEPARATOR = '\n━━━━━━━━━━━━━━━━━';
 const PREFIXES = ['/', '.', '#', '@'];
 const KICK_LIMIT = 3;
+const MAX_RETRIES = 3;              // ← retry limit
 
 const STARTUP_MSG =
 `╔══════════════════════════╗
-║  👑 𝐑𝐊 𝐑𝐀𝐉𝐀 𝐁𝐎𝐓 𝐎𝐍𝐋𝐈𝐍𝐄  ║
+║  👑 𝐑𝐊 𝐑𝐀𝐉𝐀 𝐗𝐖𝐃 𝐁𝐎𝐓  ║
 ╚══════════════════════════╝
 
-🔥 𝐑𝐊 𝐑𝐀𝐉𝐀 𝐤𝐚 𝐛𝐨𝐭 𝐮𝐭𝐡𝐚 𝐠𝐚𝐲𝐚 𝐬𝐨 𝐤𝐞 😎
+🎉 𝐑𝐊 𝐑𝐀𝐉𝐀 𝐗𝐖𝐃 𝐤𝐞 𝐛𝐨𝐭 𝐦𝐞 𝐚𝐚𝐩𝐤𝐚 𝐬𝐰𝐚𝐠𝐚𝐭 𝐡𝐚𝐢 🎉
 
 ✅ Bot ab active hai
-💬 Shayari / Joke / DP / Flirt — bina prefix
+💬 Shayari / Joke / DP / Flirt — bina prefix likho
 🔐 Admin commands — prefix ke saath
+👑 Type /help for commands
 
 ❥ RK RAJA XWD ❥
 ━━━━━━━━━━━━━━━━━`;
@@ -54,7 +56,8 @@ const STARTUP_MSG =
 let botAPI = null, adminID = null, botID = null;
 let prefix = '/', currentCookies = null;
 let userData = {}, lastReply = {}, groupLocks = {}, spamCount = {};
-let isStopped = false;   // ← YE NAYA
+let isStopped = false;
+let retryCount = 0;                 // ← retry counter
 
 // ================= LOG =================
 function emitLog(msg, isErr = false) {
@@ -64,7 +67,7 @@ function emitLog(msg, isErr = false) {
 }
 
 // ==================================================
-// ================== SHAYARI (Hindi + Urdu) ========
+// ================== SHAYARI =======================
 // ==================================================
 const SHAYARI = [
   "Tere bina zindagi adhoori si lagti hai,\nTere saath har khushi poori si lagti hai 💕",
@@ -361,7 +364,7 @@ const AUTO_REPLIES = [
       "Aao baat kare, 'flirt' bol do 🥰"
     ] },
   { keys: ['sona','babu','jaan','jaanu','jaana','baby','dear','honey','shona'],
-    replies: null // handled by FLIRT_REPLIES
+    replies: null
   }
 ];
 
@@ -407,7 +410,7 @@ function getUser(uid) {
   return userData[uid];
 }
 
-// ================= COUPLE IMAGE (Popcat) =================
+// ================= COUPLE IMAGE =================
 async function generateCoupleImage(name1, name2) {
   const apis = [
     `https://api.popcat.xyz/ship?user1=${encodeURIComponent(name1)}&user2=${encodeURIComponent(name2)}`,
@@ -489,7 +492,7 @@ async function announceBotOnline(api) {
     const threads = await api.getThreadList(100, null, ['GROUP']);
     let sent = 0;
     for (const t of threads) {
-      if (isStopped) break;   // ← NAYA
+      if (isStopped) break;
       try { await api.sendMessage(STARTUP_MSG, t.threadID); sent++; }
       catch (e) { emitLog(`Skip ${t.threadID}: ${e.message}`, true); }
       await new Promise(r => setTimeout(r, 800));
@@ -498,20 +501,41 @@ async function announceBotOnline(api) {
   } catch (e) { emitLog('Announce err: ' + e.message, true); }
 }
 
-// ================= LOGIN =================
+// ================= LOGIN (RETRY LIMITED) =================
 function initializeBot(cookies) {
-  isStopped = false;   // ← NAYA
-  emitLog('Initializing bot...');
+  isStopped = false;
+  emitLog(`Initializing bot... (attempt ${retryCount + 1}/${MAX_RETRIES})`);
   currentCookies = cookies;
+
   try {
     login({ appState: cookies }, (err, api) => {
       if (err) {
-        emitLog('Login err: ' + (err.message || JSON.stringify(err)), true);
-        if (!isStopped) setTimeout(() => initializeBot(cookies), 8000);   // ← NAYA check
+        const msg = err.message || JSON.stringify(err);
+
+        // Agar Facebook block wala error hai toh retry band karo
+        if (msg.includes('blocked') || msg.includes('userID') || msg.includes('verify')) {
+          emitLog('❌ Facebook ne login block kar diya!', true);
+          emitLog('👉 Solution: Phone browser me FB login karo, verify karo, phir nayi C3C nikalo.', true);
+          emitLog('🛑 Retry band. Naya C3C daalo aur Start dabao.', true);
+          retryCount = 0;
+          return; // retry NAHI
+        }
+
+        // Baaki errors pe 3 baar tak retry
+        retryCount++;
+        if (retryCount < MAX_RETRIES && !isStopped) {
+          emitLog(`⚠️ Login err: ${msg}. Retry ${retryCount}/${MAX_RETRIES} in 15s...`, true);
+          setTimeout(() => initializeBot(cookies), 15000);
+        } else {
+          emitLog('🛑 Max retries reached. Naya C3C daalo.', true);
+          retryCount = 0;
+        }
         return;
       }
 
-      // ← NAYA: agar stop ho chuka hai toh login complete hone pe bhi kuch na karo
+      // Login success
+      retryCount = 0;
+
       if (isStopped) {
         emitLog('Bot stopped before login completed.');
         try { api.logout && api.logout(()=>{}); } catch {}
@@ -521,15 +545,15 @@ function initializeBot(cookies) {
       botAPI = api;
       try { botID = api.getCurrentUserID(); } catch {}
       api.setOptions({ selfListen: false, listenEvents: true, updatePresence: false });
-      emitLog('Bot logged in. BotID: ' + botID);
+      emitLog('✅ Bot logged in. BotID: ' + botID);
       io.emit('bot-ready', { botID });
 
       setTimeout(async () => {
-        if (isStopped) return;   // ← NAYA
+        if (isStopped) return;
         await announceBotOnline(api);
-        if (isStopped) return;   // ← NAYA
+        if (isStopped) return;
         api.listenMqtt((err, event) => {
-          if (isStopped) return;   // ← NAYA
+          if (isStopped) return;
           if (err) { emitLog('Listener err: ' + err.message, true); return; }
           handleEvent(api, event).catch(e => emitLog('Handler: ' + e.message, true));
         });
@@ -537,15 +561,19 @@ function initializeBot(cookies) {
     });
   } catch (e) {
     emitLog('Login threw: ' + e.message, true);
-    if (!isStopped) setTimeout(() => initializeBot(cookies), 8000);   // ← NAYA check
+    retryCount++;
+    if (retryCount < MAX_RETRIES && !isStopped) {
+      setTimeout(() => initializeBot(cookies), 15000);
+    } else {
+      retryCount = 0;
+    }
   }
 }
 
 // ================= EVENT HANDLER =================
 async function handleEvent(api, event) {
-  if (!event || isStopped) return;   // ← NAYA check
+  if (!event || isStopped) return;
 
-  // ---- LOG EVENTS ----
   if (event.logMessageType === 'log:thread-name') return handleThreadNameChange(api, event);
   if (event.logMessageType === 'log:user-nickname') return handleNicknameChange(api, event);
   if (event.logMessageType === 'log:subscribe') return handleUserJoined(api, event);
@@ -558,7 +586,7 @@ async function handleEvent(api, event) {
   const admin = isAdmin(senderID);
   const locks = groupLocks[threadID] || {};
 
-  // ============ MSG LOCK ============
+  // MSG LOCK
   if (locks.msgLock && !admin) {
     try {
       spamCount[threadID] = spamCount[threadID] || {};
@@ -577,7 +605,7 @@ async function handleEvent(api, event) {
     return;
   }
 
-  // ============ SPAM LOCK ============
+  // SPAM LOCK
   if (locks.spamLock && !admin && isStickerOrPhoto(event)) {
     try {
       spamCount[threadID] = spamCount[threadID] || {};
@@ -602,7 +630,7 @@ async function handleEvent(api, event) {
   if (lastReply[senderID] && now - lastReply[senderID] < 1200) return;
   lastReply[senderID] = now;
 
-  // ============ PREFIX COMMANDS (Admin only mostly) ============
+  // PREFIX COMMANDS
   const usedPrefix = PREFIXES.find(p => txt.startsWith(p));
   if (usedPrefix) {
     const parts = txt.slice(1).split(/\s+/);
@@ -637,8 +665,6 @@ async function handleEvent(api, event) {
           return api.sendMessage(`✅ Sent to ${sent} groups.${SIGNATURE}`, threadID);
         } catch (e) { return api.sendMessage('Err: ' + e.message, threadID); }
       }
-
-      // FYT
       if (cmd === 'fyt') {
         const sub = args[0];
         if (sub === 'on') {
@@ -658,8 +684,6 @@ async function handleEvent(api, event) {
         }
         return api.sendMessage(`Usage: ${prefix}fyt on/off`, threadID);
       }
-
-      // LOCKNAME
       if (cmd === 'lockname') {
         const sub = args[0];
         if (sub === 'on') {
@@ -675,8 +699,6 @@ async function handleEvent(api, event) {
           return api.sendMessage(`🔓 Name unlocked.${SIGNATURE}`, threadID);
         }
       }
-
-      // LOCKNICK
       if (cmd === 'locknick') {
         const sub = args[0];
         if (sub === 'on') {
@@ -701,24 +723,18 @@ async function handleEvent(api, event) {
           return api.sendMessage(`🔓 Nicknames unlocked.${SIGNATURE}`, threadID);
         }
       }
-
-      // MSGLOCK
       if (cmd === 'msglock') {
         const sub = args[0];
         groupLocks[threadID] = groupLocks[threadID] || { nicknames: {} };
         if (sub === 'on') { groupLocks[threadID].msgLock = true; spamCount[threadID] = {}; return api.sendMessage(`🔒 Msg locker ON.${SIGNATURE}`, threadID); }
         if (sub === 'off') { groupLocks[threadID].msgLock = false; return api.sendMessage(`🔓 Msg locker OFF — sab msg kar sakte hai.${SIGNATURE}`, threadID); }
       }
-
-      // SPAMLOCK
       if (cmd === 'spamlock') {
         const sub = args[0];
         groupLocks[threadID] = groupLocks[threadID] || { nicknames: {} };
         if (sub === 'on') { groupLocks[threadID].spamLock = true; spamCount[threadID] = {}; return api.sendMessage(`🔒 Spam locker ON.${SIGNATURE}`, threadID); }
         if (sub === 'off') { groupLocks[threadID].spamLock = false; return api.sendMessage(`🔓 Spam locker OFF.${SIGNATURE}`, threadID); }
       }
-
-      // UNLOCK ALL
       if (cmd === 'unlock' && args[0] === 'all') {
         delete groupLocks[threadID]; delete spamCount[threadID];
         return api.sendMessage(`🔓 Sab unlock.${SIGNATURE}`, threadID);
@@ -726,20 +742,16 @@ async function handleEvent(api, event) {
     }
   }
 
-  // ============ NO-PREFIX FUN (sab ke liye) ============
-
+  // NO-PREFIX FUN
   if (txt.includes('shayari') || txt.includes('shayri') || txt.includes('sher')) {
     return api.sendMessage(await buildReply(api, event, rand(SHAYARI)), threadID);
   }
-
   if (txt.includes('joke') || txt.includes('jokes') || txt.includes('hasao')) {
     return api.sendMessage(await buildReply(api, event, rand(JOKES)), threadID);
   }
-
   if (txt.includes('flirt') || txt.includes('flirting')) {
     return api.sendMessage(await buildReply(api, event, rand(FLIRT_REPLIES)), threadID);
   }
-
   if (txt === 'dp' || txt === 'profile' || txt.includes('mera dp') || txt.includes('my dp')) {
     let info = null;
     try { info = (await api.getUserInfo(senderID))?.[senderID]; } catch {}
@@ -760,12 +772,9 @@ async function handleEvent(api, event) {
 ${SIGNATURE}
 ━━━━━━━━━━━━━━━━━`;
     const msg = { body, mentions: [{ tag: `@${name}`, id: senderID }] };
-    if (info?.profileUrl) {
-      try { msg.attachment = info.profileUrl; } catch {}
-    }
+    if (info?.profileUrl) { try { msg.attachment = info.profileUrl; } catch {} }
     return api.sendMessage(msg, threadID);
   }
-
   if (txt === 'couple' || txt.startsWith('couple ')) {
     let name1 = null, name2 = null;
     const mentions = event.mentions || {};
@@ -806,9 +815,7 @@ ${SIGNATURE}
     }
     try {
       const imgUrl = await generateCoupleImage(name1, name2);
-      if (!imgUrl) {
-        return api.sendMessage(`❌ Photo nahi ban payi, phir try karo.${SIGNATURE}`, threadID);
-      }
+      if (!imgUrl) return api.sendMessage(`❌ Photo nahi ban payi.${SIGNATURE}`, threadID);
       return api.sendMessage({
         body: `💑 ${name1} ❤️ ${name2}\n\nCute couple photo ready! 🥰${SIGNATURE}`,
         attachment: imgUrl
@@ -818,16 +825,9 @@ ${SIGNATURE}
       return api.sendMessage(`❌ Error: ${e.message}${SIGNATURE}`, threadID);
     }
   }
-
   const autoReply = matchAuto(txt);
-  if (autoReply) {
-    return api.sendMessage(await buildReply(api, event, autoReply), threadID);
-  }
-
-  if (hasFlirt(txt)) {
-    return api.sendMessage(await buildReply(api, event, rand(FLIRT_REPLIES)), threadID);
-  }
-
+  if (autoReply) return api.sendMessage(await buildReply(api, event, autoReply), threadID);
+  if (hasFlirt(txt)) return api.sendMessage(await buildReply(api, event, rand(FLIRT_REPLIES)), threadID);
   return;
 }
 
@@ -899,6 +899,8 @@ app.post('/configure', (req, res) => {
     adminID = String(aID).trim();
     prefix = PREFIXES.includes(pfx) ? pfx : '/';
     if (bID) botID = String(bID).trim();
+    retryCount = 0; // naye C3C pe retry reset
+    isStopped = false;
     emitLog(`Admin:${adminID} Prefix:${prefix} BotID:${botID || 'auto'}`);
     res.send('✅ Configured. Bot starting...');
     initializeBot(cookies);
@@ -908,7 +910,7 @@ app.post('/configure', (req, res) => {
   }
 });
 
-// ================= STOP BOT (NAYA) =================
+// ================= STOP BOT =================
 app.post('/stop', (req, res) => {
   try {
     if (!botAPI && isStopped) {
@@ -916,6 +918,7 @@ app.post('/stop', (req, res) => {
     }
     emitLog('🛑 Stopping bot...');
     isStopped = true;
+    retryCount = 0;
 
     try { botAPI && botAPI.stopListening && botAPI.stopListening(); } catch (e) {}
     try { botAPI && botAPI.logout && botAPI.logout(() => {}); } catch (e) {}
