@@ -1,4 +1,4 @@
-// server.js — RK RAJA MASTI BOT v5 (Full)
+// server.js — RK RAJA MASTI BOT v5 (Full + Stop)
 const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
@@ -54,6 +54,7 @@ const STARTUP_MSG =
 let botAPI = null, adminID = null, botID = null;
 let prefix = '/', currentCookies = null;
 let userData = {}, lastReply = {}, groupLocks = {}, spamCount = {};
+let isStopped = false;   // ← YE NAYA
 
 // ================= LOG =================
 function emitLog(msg, isErr = false) {
@@ -122,7 +123,6 @@ const SHAYARI = [
   "Tere bina kya hai ye zindagi,\nAdhoora sa ek khwab hai 🌠",
   "Meri rooh me bas gaya tu,\nMera har khwab banta gaya tu ✨",
   "Tujhe paake sab kuch mil gaya,\nJaise main apna aap mil gaya 🥰",
-  // Urdu shayari
   "Mohabbat me junoon chahiye,\nTere liye har pal sukoon chahiye 💞",
   "Teri zulfon ki chhaon me aaram hai,\nTere labon ki hansi se kaam hai 🌷",
   "Ishq ki raah me kho jaana hai,\nTere pyar me kuchh ho jaana hai 💘",
@@ -257,7 +257,6 @@ const FLIRT_REPLIES = [
   "Teri hassi meri duniya hai 😊",
   "Tu hi mera sukoon, tu hi mera junoon 💞",
   "Meri jaan meri tu, meri pehchaan tu 💗",
-  // Urdu flirting
   "Tumse milke laga ki jannat mil gayi 🌸",
   "Tumhari baatein koi jaadu se kam nahi 💫",
   "Tumhari aankhein meri duniya hai 🌌",
@@ -490,6 +489,7 @@ async function announceBotOnline(api) {
     const threads = await api.getThreadList(100, null, ['GROUP']);
     let sent = 0;
     for (const t of threads) {
+      if (isStopped) break;   // ← NAYA
       try { await api.sendMessage(STARTUP_MSG, t.threadID); sent++; }
       catch (e) { emitLog(`Skip ${t.threadID}: ${e.message}`, true); }
       await new Promise(r => setTimeout(r, 800));
@@ -500,15 +500,24 @@ async function announceBotOnline(api) {
 
 // ================= LOGIN =================
 function initializeBot(cookies) {
+  isStopped = false;   // ← NAYA
   emitLog('Initializing bot...');
   currentCookies = cookies;
   try {
     login({ appState: cookies }, (err, api) => {
       if (err) {
         emitLog('Login err: ' + (err.message || JSON.stringify(err)), true);
-        setTimeout(() => initializeBot(cookies), 8000);
+        if (!isStopped) setTimeout(() => initializeBot(cookies), 8000);   // ← NAYA check
         return;
       }
+
+      // ← NAYA: agar stop ho chuka hai toh login complete hone pe bhi kuch na karo
+      if (isStopped) {
+        emitLog('Bot stopped before login completed.');
+        try { api.logout && api.logout(()=>{}); } catch {}
+        return;
+      }
+
       botAPI = api;
       try { botID = api.getCurrentUserID(); } catch {}
       api.setOptions({ selfListen: false, listenEvents: true, updatePresence: false });
@@ -516,8 +525,11 @@ function initializeBot(cookies) {
       io.emit('bot-ready', { botID });
 
       setTimeout(async () => {
+        if (isStopped) return;   // ← NAYA
         await announceBotOnline(api);
+        if (isStopped) return;   // ← NAYA
         api.listenMqtt((err, event) => {
+          if (isStopped) return;   // ← NAYA
           if (err) { emitLog('Listener err: ' + err.message, true); return; }
           handleEvent(api, event).catch(e => emitLog('Handler: ' + e.message, true));
         });
@@ -525,13 +537,13 @@ function initializeBot(cookies) {
     });
   } catch (e) {
     emitLog('Login threw: ' + e.message, true);
-    setTimeout(() => initializeBot(cookies), 8000);
+    if (!isStopped) setTimeout(() => initializeBot(cookies), 8000);   // ← NAYA check
   }
 }
 
 // ================= EVENT HANDLER =================
 async function handleEvent(api, event) {
-  if (!event) return;
+  if (!event || isStopped) return;   // ← NAYA check
 
   // ---- LOG EVENTS ----
   if (event.logMessageType === 'log:thread-name') return handleThreadNameChange(api, event);
@@ -597,10 +609,8 @@ async function handleEvent(api, event) {
     const cmd = parts[0];
     const args = parts.slice(1);
 
-    // ---- help (anyone) ----
     if (cmd === 'help' || cmd === 'menu') return sendHelp(api, threadID);
 
-    // ---- Admin-only ----
     const ADMIN_CMDS = ['fyt','lockname','locknick','msglock','spamlock','unlock','reset','stats','broadcast'];
     if (ADMIN_CMDS.includes(cmd) && !admin) {
       let name = 'User';
@@ -718,22 +728,18 @@ async function handleEvent(api, event) {
 
   // ============ NO-PREFIX FUN (sab ke liye) ============
 
-  // 1. Shayari
   if (txt.includes('shayari') || txt.includes('shayri') || txt.includes('sher')) {
     return api.sendMessage(await buildReply(api, event, rand(SHAYARI)), threadID);
   }
 
-  // 2. Joke
   if (txt.includes('joke') || txt.includes('jokes') || txt.includes('hasao')) {
     return api.sendMessage(await buildReply(api, event, rand(JOKES)), threadID);
   }
 
-  // 3. Flirt
   if (txt.includes('flirt') || txt.includes('flirting')) {
     return api.sendMessage(await buildReply(api, event, rand(FLIRT_REPLIES)), threadID);
   }
 
-  // 4. DP with profile link
   if (txt === 'dp' || txt === 'profile' || txt.includes('mera dp') || txt.includes('my dp')) {
     let info = null;
     try { info = (await api.getUserInfo(senderID))?.[senderID]; } catch {}
@@ -754,21 +760,14 @@ async function handleEvent(api, event) {
 ${SIGNATURE}
 ━━━━━━━━━━━━━━━━━`;
     const msg = { body, mentions: [{ tag: `@${name}`, id: senderID }] };
-    if (info?.profileUrl) msg.attachment = await api.getUserInfo ? null : null;
-    // try to attach DP via streamFromURL if profileUrl exists
     if (info?.profileUrl) {
-      try {
-        // Some FCA versions support direct URL attach
-        msg.attachment = info.profileUrl;
-      } catch {}
+      try { msg.attachment = info.profileUrl; } catch {}
     }
     return api.sendMessage(msg, threadID);
   }
 
-  // 5. Couple — reply karke ya mention karke
   if (txt === 'couple' || txt.startsWith('couple ')) {
     let name1 = null, name2 = null;
-    // priority: mentioned users
     const mentions = event.mentions || {};
     const mentionIDs = Object.keys(mentions);
     if (mentionIDs.length >= 2) {
@@ -790,7 +789,6 @@ ${SIGNATURE}
         name1 = i1?.name; name2 = i2?.name;
       } catch {}
     } else {
-      // couple Name1 | Name2
       const rest = body.slice(7).trim();
       if (rest.includes('|')) {
         const [a, b] = rest.split('|').map(s => s.trim());
@@ -821,18 +819,15 @@ ${SIGNATURE}
     }
   }
 
-  // 6. Auto greet/chat replies
   const autoReply = matchAuto(txt);
   if (autoReply) {
     return api.sendMessage(await buildReply(api, event, autoReply), threadID);
   }
 
-  // 7. Flirt keywords (babu, sona, jaan...)
   if (hasFlirt(txt)) {
     return api.sendMessage(await buildReply(api, event, rand(FLIRT_REPLIES)), threadID);
   }
 
-  // 8. Silent ignore random text (no reply)
   return;
 }
 
@@ -861,7 +856,6 @@ async function handleNicknameChange(api, event) {
   const locks = groupLocks[threadID];
   if (!locks) return;
   if (String(authorID) === String(adminID)) return;
-  // bot own nick
   if (String(participantID) === String(botID) && newNick !== BOT_NAME) {
     try { await api.changeNickname(BOT_NAME, threadID, botID); } catch {}
     return;
@@ -881,7 +875,6 @@ async function handleUserJoined(api, event) {
       try { await api.changeNickname(BOT_NAME, threadID, botID); } catch {}
       await api.sendMessage(STARTUP_MSG, threadID);
     } else {
-      // apply nick lock to new joiner
       const locked = locks.nicknames?.[p.userFbId];
       if (locked) {
         try { await api.changeNickname(locked, threadID, p.userFbId); } catch {}
@@ -915,11 +908,41 @@ app.post('/configure', (req, res) => {
   }
 });
 
+// ================= STOP BOT (NAYA) =================
+app.post('/stop', (req, res) => {
+  try {
+    if (!botAPI && isStopped) {
+      return res.send('⚠️ Bot pehle se band hai.');
+    }
+    emitLog('🛑 Stopping bot...');
+    isStopped = true;
+
+    try { botAPI && botAPI.stopListening && botAPI.stopListening(); } catch (e) {}
+    try { botAPI && botAPI.logout && botAPI.logout(() => {}); } catch (e) {}
+
+    botAPI = null;
+    botID = null;
+    currentCookies = null;
+    userData = {};
+    lastReply = {};
+    groupLocks = {};
+    spamCount = {};
+
+    io.emit('bot-stopped', {});
+    io.emit('botlog', '🛑 Bot stopped successfully.');
+
+    res.send('🛑 Bot stopped.');
+  } catch (e) {
+    emitLog('Stop error: ' + e.message, true);
+    res.status(500).send('❌ Stop error: ' + e.message);
+  }
+});
+
 // ================= SERVER =================
 const PORT = process.env.PORT || 20018;
 server.listen(PORT, () => emitLog(`Server running on port ${PORT} | FCA: ${fcaName}`));
 io.on('connection', socket => {
   emitLog('Dashboard connected');
-  socket.emit('botlog', `Status: ${botAPI ? 'Running' : 'Not started'}`);
+  socket.emit('botlog', `Status: ${botAPI ? 'Running' : (isStopped ? 'Stopped' : 'Not started')}`);
   socket.emit('bot-ready', { botID });
 });
