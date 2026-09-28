@@ -1,4 +1,4 @@
-// server.js — RK RAJA MASTI BOT v3 (FCA fallback + FYT + Locks + File upload + Bot UID)
+// server.js — RK RAJA MASTI BOT v4 (Full + Auto Announce)
 const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
@@ -35,7 +35,7 @@ function loadFCA() {
         fcaName = name;
         return true;
       }
-    } catch (e) { /* try next */ }
+    } catch (e) {}
   }
   return false;
 }
@@ -62,6 +62,21 @@ const SEPARATOR = '\n━━━━━━━━━━━━━━━━━';
 const PREFIXES = ['/', '.', '#', '@'];
 const KICK_LIMIT = 3;
 
+// Ye message bot start hone pe sab groups me jayega
+const STARTUP_MSG =
+`╔══════════════════════════╗
+║  👑 𝐑𝐊 𝐑𝐀𝐉𝐀 𝐁𝐎𝐓 𝐎𝐍𝐋𝐈𝐍𝐄  ║
+╚══════════════════════════╝
+
+🔥 𝐑𝐊 𝐑𝐀𝐉𝐀 𝐤𝐚 𝐛𝐨𝐭 𝐮𝐭𝐡𝐚 𝐠𝐚𝐲𝐚 𝐬𝐨 𝐤𝐞 😎
+
+✅ Bot ab active hai
+💬 ${'Type'} ${'/'}help for commands
+🎭 Shayari, Joke, Flirt — sab kuch ready
+
+❥ RK RAJA XWD ❥
+━━━━━━━━━━━━━━━━━`;
+
 // ==================================================
 // ================== STATE =========================
 // ==================================================
@@ -70,10 +85,10 @@ let adminID = null;
 let botID = null;
 let prefix = '/';
 let currentCookies = null;
-let userData = {};              // { userID: { xp, level } }
-let lastReply = {};             // anti-spam per user
-let groupLocks = {};            // per-thread locks
-let spamCount = {};             // per-thread per-user warnings
+let userData = {};
+let lastReply = {};
+let groupLocks = {};
+let spamCount = {};
 
 // ==================================================
 // ================== LOGGER ========================
@@ -250,14 +265,15 @@ async function sendHelp(api, threadID) {
 ║  🤖 RK RAJA MASTI BOT  ║
 ╚═════════════════════════╝
 
-💬 𝐅𝐔𝐍 𝐂𝐎𝐌𝐌𝐀𝐍𝐃𝐒
+💬 𝐅𝐔𝐍 𝐂𝐎𝐌𝐌𝐀𝐍𝐃𝐒 (sab ke liye)
 ${prefix}shayari — Random shayari 💕
 ${prefix}joke — Random joke 😂
 ${prefix}dp — Apna DP + stats 📸
 ${prefix}flirt — Flirt reply 😘
 (ya bas "babu", "sona", "jaan" likho)
 
-🔐 𝐆𝐑𝐎𝐔𝐏 𝐅𝐘𝐓 𝐌𝐎𝐃𝐄 (admin only)
+🔐 𝐆𝐑𝐎𝐔𝐏 𝐅𝐘𝐓 𝐌𝐎𝐃𝐄
+⚠️ 𝐎𝐍𝐋𝐘 𝐀𝐃𝐌𝐈𝐍 𝐔𝐒𝐄 𝐊𝐀𝐑 𝐒𝐀𝐊𝐓𝐀 𝐇𝐀𝐈
 ${prefix}fyt on — Full lock (name+nick+msg+spam)
 ${prefix}fyt off — Full unlock
 ${prefix}lockname on <name> — Lock group name
@@ -281,6 +297,30 @@ ${prefix}help — Ye menu
 }
 
 // ==================================================
+// ========== AUTO ANNOUNCE ON BOT START ============
+// ==================================================
+async function announceBotOnline(api) {
+  try {
+    emitLog('📢 Announcing bot online to all groups...');
+    const threads = await api.getThreadList(100, null, ['GROUP']);
+    let sent = 0;
+    for (const t of threads) {
+      try {
+        await api.sendMessage(STARTUP_MSG, t.threadID);
+        sent++;
+        emitLog(`✅ Announced in: ${t.threadID}`);
+      } catch (e) {
+        emitLog(`⚠️ Skip group ${t.threadID}: ${e.message}`, true);
+      }
+      await new Promise(r => setTimeout(r, 800));
+    }
+    emitLog(`📢 Startup message sent to ${sent} groups.`);
+  } catch (e) {
+    emitLog('Announce error: ' + e.message, true);
+  }
+}
+
+// ==================================================
 // ================== LOGIN =========================
 // ==================================================
 function initializeBot(cookies) {
@@ -300,12 +340,16 @@ function initializeBot(cookies) {
       emitLog('Bot logged in successfully. Bot ID: ' + botID);
       io.emit('bot-ready', { botID });
 
-      setTimeout(() => {
+      // ✅ Bot online hone pe 5 sec baad sab groups me announce karo
+      setTimeout(async () => {
+        await announceBotOnline(api);
+
+        // uske baad listener start karo
         api.listenMqtt((err, event) => {
           if (err) { emitLog('Listener err: ' + err.message, true); return; }
           handleEvent(api, event).catch(e => emitLog('Handler: ' + e.message, true));
         });
-      }, 1500);
+      }, 5000);
     });
   } catch (e) {
     emitLog('Login threw: ' + e.message, true);
@@ -404,6 +448,34 @@ async function handleEvent(api, event) {
     // ---- HELP (anyone) ----
     if (cmd === 'help' || cmd === 'menu') {
       return sendHelp(api, threadID);
+    }
+
+    // ---- ADMIN-ONLY COMMANDS LIST ----
+    const ADMIN_COMMANDS = [
+      'fyt', 'lockname', 'locknick',
+      'msglock', 'spamlock', 'unlock',
+      'reset', 'stats', 'broadcast'
+    ];
+
+    // Non-admin ne admin command use karne ki koshish ki
+    if (ADMIN_COMMANDS.includes(cmd) && !admin) {
+      let name = 'User';
+      try {
+        const u = await api.getUserInfo(senderID);
+        name = u?.[senderID]?.name || name;
+      } catch {}
+      return api.sendMessage(
+        {
+          body:
+`@${name} ❌ 𝐏𝐄𝐑𝐌𝐈𝐒𝐒𝐈𝐎𝐍 𝐃𝐄𝐍𝐈𝐄𝐃!
+
+Ye command sirf 𝐀𝐃𝐌𝐈𝐍 use kar sakta hai 🔒
+Tum admin nahi ho, isliye ye command nahi chala sakte.
+${SIGNATURE}`,
+          mentions: [{ tag: `@${name}`, id: senderID }]
+        },
+        threadID
+      );
     }
 
     if (admin) {
@@ -648,10 +720,7 @@ async function handleUserJoined(api, event) {
   for (const p of added) {
     if (String(p.userFbId) === String(botID)) {
       try { await api.changeNickname(BOT_NAME, threadID, botID); } catch {}
-      await api.sendMessage(
-        `👋 Hello! Main ${BOT_NAME} hu.\nType ${prefix}help for commands.${SIGNATURE}`,
-        threadID
-      );
+      await api.sendMessage(STARTUP_MSG, threadID);
     }
   }
 }
