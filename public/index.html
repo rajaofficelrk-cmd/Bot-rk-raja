@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>RK RAJA — Masti Bot Dashboard v6</title>
+<title>RK RAJA — Masti Bot Dashboard v7</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',sans-serif}
   body{background:#0b0b16;color:#e5e7eb;min-height:100vh;padding-bottom:40px}
@@ -46,6 +46,18 @@
   .prefix-group input:checked + label{
     background:linear-gradient(135deg,#7c3aed,#ec4899);
     border-color:#ec4899;color:#fff;transform:scale(1.03)
+  }
+
+  .mode-group{display:flex;gap:10px;margin-top:6px}
+  .mode-group label{
+    flex:1;margin:0;padding:10px;text-align:center;
+    background:#0b0b16;border:2px solid #2a2a44;border-radius:8px;
+    cursor:pointer;font-size:.85rem;color:#e5e7eb;transition:.2s;font-weight:700
+  }
+  .mode-group input{display:none}
+  .mode-group input:checked + label{
+    background:linear-gradient(135deg,#7c3aed,#ec4899);
+    border-color:#ec4899;color:#fff
   }
 
   .file-drop{
@@ -96,7 +108,7 @@
 
 <header>
   <h1>👑 RK RAJA</h1>
-  <span class="tag">MASTI BOT v6</span>
+  <span class="tag">MASTI BOT v7</span>
 </header>
 
 <div class="container">
@@ -107,18 +119,36 @@
     <label>🆔 Admin ID (Facebook numeric ID)</label>
     <input type="text" id="adminID" placeholder="100012345678901" />
 
-    <label>🤖 Bot UID <span style="color:#6b7280;font-weight:400">(optional — auto detect on login)</span></label>
+    <label>🤖 Bot UID <span style="color:#6b7280;font-weight:400">(optional)</span></label>
     <input type="text" id="botID" placeholder="Bot ka Facebook UID paste karo" />
 
-    <label>🍪 C3C / AppState</label>
-    <div class="file-drop" id="fileDrop">
-      <input type="file" id="c3cFile" accept=".json,.txt" />
-      <span class="icon">📁</span>
-      <p>Click karo ya file drag karo (.json / .txt)</p>
-      <div class="fname" id="fileName"></div>
+    <label>🔐 Login Mode</label>
+    <div class="mode-group">
+      <input type="radio" name="mode" id="m1" value="c3c" checked>
+      <label for="m1">🍪 C3C / AppState (JSON)</label>
+      <input type="radio" name="mode" id="m2" value="cookies">
+      <label for="m2">📝 Raw Cookies (String)</label>
     </div>
-    <div class="hint">Ya niche paste karo directly:</div>
-    <textarea id="cookies" placeholder='[{"key":"c_user","value":"...","domain":".facebook.com"}, ...]'></textarea>
+
+    <!-- C3C MODE -->
+    <div id="c3cSection">
+      <label>🍪 C3C / AppState (JSON array)</label>
+      <div class="file-drop" id="fileDrop">
+        <input type="file" id="c3cFile" accept=".json,.txt" />
+        <span class="icon">📁</span>
+        <p>Click karo ya file drag karo (.json / .txt)</p>
+        <div class="fname" id="fileName"></div>
+      </div>
+      <div class="hint">Ya niche paste karo directly:</div>
+      <textarea id="cookies" placeholder='[{"key":"c_user","value":"...","domain":".facebook.com"}, ...]'></textarea>
+    </div>
+
+    <!-- COOKIES MODE -->
+    <div id="rawSection" style="display:none">
+      <label>📝 Raw Cookie String</label>
+      <textarea id="rawCookies" placeholder='c_user=100012345678; xs=abc123xyz; datr=xyzabc; sb=abc; fr=xyz'></textarea>
+      <div class="hint">Browser DevTools → Application → Cookies se copy karo. Ek line me paste karo.</div>
+    </div>
 
     <label>🔣 Bot Prefix</label>
     <div class="prefix-group">
@@ -154,6 +184,23 @@
   const fileDrop = document.getElementById('fileDrop');
   const fileName = document.getElementById('fileName');
   const cookiesTA = document.getElementById('cookies');
+  const rawTA = document.getElementById('rawCookies');
+  const c3cSection = document.getElementById('c3cSection');
+  const rawSection = document.getElementById('rawSection');
+
+  // Mode toggle
+  document.querySelectorAll('input[name=mode]').forEach(r => {
+    r.addEventListener('change', () => {
+      const mode = document.querySelector('input[name=mode]:checked').value;
+      if (mode === 'c3c') {
+        c3cSection.style.display = '';
+        rawSection.style.display = 'none';
+      } else {
+        c3cSection.style.display = 'none';
+        rawSection.style.display = '';
+      }
+    });
+  });
 
   socket.on('connect', () => addLog('Dashboard connected', 'ok'));
 
@@ -191,6 +238,7 @@
     logEl.scrollTop = logEl.scrollHeight;
   }
 
+  // File upload
   fileDrop.addEventListener('click', () => fileInput.click());
   fileDrop.addEventListener('dragover', e => {
     e.preventDefault();
@@ -212,7 +260,7 @@
       const text = ev.target.result;
       cookiesTA.value = text;
       fileName.textContent = '✅ Loaded: ' + file.name + ' (' + text.length + ' chars)';
-      addLog('C3C file loaded: ' + file.name, 'ok');
+      addLog('File loaded: ' + file.name, 'ok');
     };
     reader.onerror = () => addLog('File read error', 'err');
     reader.readAsText(file);
@@ -221,23 +269,35 @@
   // START
   document.getElementById('startBtn').addEventListener('click', async () => {
     const adminID = document.getElementById('adminID').value.trim();
-    const botIDval = document.getElementById('botID').value.trim();
-    const cookiesRaw = cookiesTA.value.trim();
+    const botIDval = botIDInput.value.trim();
     const prefix = document.querySelector('input[name=pfx]:checked').value;
+    const mode = document.querySelector('input[name=mode]:checked').value;
 
     if (!adminID) return alert('Admin ID daalo!');
-    if (!cookiesRaw) return alert('C3C file upload karo ya paste karo!');
 
-    let cookies;
-    try { cookies = JSON.parse(cookiesRaw); }
-    catch (e) { return alert('C3C JSON galat hai: ' + e.message); }
+    let payload = { adminID, prefix, botID: botIDval || null, mode };
+
+    if (mode === 'c3c') {
+      const raw = cookiesTA.value.trim();
+      if (!raw) return alert('C3C paste karo ya file upload karo!');
+      let arr;
+      try { arr = JSON.parse(raw); }
+      catch (e) { return alert('C3C JSON galat hai: ' + e.message); }
+      if (!Array.isArray(arr) || arr.length === 0)
+        return alert('C3C array empty hai!');
+      payload.cookies = arr;
+    } else {
+      const raw = rawTA.value.trim();
+      if (!raw) return alert('Cookies string paste karo!');
+      payload.cookieString = raw;
+    }
 
     msgEl.textContent = '⏳ Sending config...';
     try {
       const res = await fetch('/configure', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cookies, adminID, prefix, botID: botIDval || null })
+        body: JSON.stringify(payload)
       });
       const text = await res.text();
       msgEl.textContent = text;
