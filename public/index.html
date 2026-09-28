@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RK RAJA — Masti Bot Dashboard</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',sans-serif}
+  body{background:#0b0b16;color:#e5e7eb;min-height:100vh;padding-bottom:40px}
+
+  /* HEADER */
+  header{
+    background:linear-gradient(135deg,#7c3aed,#ec4899);
+    padding:18px 24px;
+    display:flex;align-items:center;justify-content:space-between;
+    box-shadow:0 4px 20px rgba(236,72,153,.35);
+  }
+  header h1{font-size:1.35rem;color:#fff;letter-spacing:1px}
+  header .tag{font-size:.75rem;color:#fde68a;background:rgba(0,0,0,.25);padding:4px 10px;border-radius:20px}
+
+  .container{max-width:820px;margin:24px auto;padding:0 16px}
+  .card{
+    background:#161628;
+    border:1px solid #2a2a44;
+    border-radius:14px;
+    padding:20px;
+    margin-bottom:20px;
+    box-shadow:0 6px 24px rgba(0,0,0,.5)
+  }
+  .card h2{
+    font-size:1.05rem;color:#c4b5fd;margin-bottom:16px;
+    display:flex;align-items:center;gap:8px
+  }
+
+  label{display:block;font-size:.85rem;color:#a78bfa;font-weight:600;margin-bottom:6px;margin-top:12px}
+  input[type=text], textarea, select{
+    width:100%;padding:10px 12px;
+    background:#0b0b16;border:1px solid #2a2a44;border-radius:8px;
+    color:#e5e7eb;font-size:.9rem;outline:none;transition:.2s
+  }
+  input:focus,textarea:focus,select:focus{border-color:#a78bfa;box-shadow:0 0 0 3px rgba(167,139,250,.15)}
+  textarea{min-height:130px;font-family:monospace;font-size:.8rem;resize:vertical}
+
+  .row{display:flex;gap:12px}
+  .row > div{flex:1}
+
+  .prefix-group{display:flex;gap:10px;margin-top:6px}
+  .prefix-group label{
+    flex:1;margin:0;padding:10px;text-align:center;
+    background:#0b0b16;border:2px solid #2a2a44;border-radius:8px;
+    cursor:pointer;font-size:1.05rem;color:#e5e7eb;
+    transition:.2s;font-weight:700
+  }
+  .prefix-group input{display:none}
+  .prefix-group input:checked + label{
+    background:linear-gradient(135deg,#7c3aed,#ec4899);
+    border-color:#ec4899;color:#fff;transform:scale(1.03)
+  }
+
+  button{
+    width:100%;margin-top:18px;padding:13px;
+    background:linear-gradient(135deg,#7c3aed,#ec4899);
+    border:none;border-radius:10px;color:#fff;
+    font-size:1rem;font-weight:700;cursor:pointer;
+    transition:.2s;letter-spacing:.5px
+  }
+  button:hover{opacity:.9;transform:translateY(-1px)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+
+  #log{
+    background:#06060f;border:1px solid #2a2a44;border-radius:10px;
+    padding:12px;height:280px;overflow-y:auto;
+    font-family:'Courier New',monospace;font-size:.78rem;
+    line-height:1.5;color:#9ca3af;white-space:pre-wrap;word-break:break-all
+  }
+  .log-err{color:#f87171}
+  .log-ok{color:#34d399}
+
+  .status{
+    display:inline-block;padding:4px 12px;border-radius:20px;
+    font-size:.72rem;font-weight:700;margin-left:8px
+  }
+  .status.on{background:#065f46;color:#6ee7b7}
+  .status.off{background:#7f1d1d;color:#fca5a5}
+
+  #msg{margin-top:10px;font-size:.85rem;color:#fbbf24;text-align:center}
+  .footer{text-align:center;color:#6b7280;font-size:.75rem;margin-top:20px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>👑 RK RAJA</h1>
+  <span class="tag">MASTI BOT</span>
+</header>
+
+<div class="container">
+
+  <!-- CONFIG CARD -->
+  <div class="card">
+    <h2>⚙️ Bot Configuration</h2>
+
+    <label>🆔 Admin ID</label>
+    <input type="text" id="adminID" placeholder="100012345678901" />
+
+    <label>🤖 Bot ID <span style="color:#6b7280;font-weight:400">(optional, auto detect)</span></label>
+    <input type="text" id="botID" placeholder="auto-detect on login" disabled />
+
+    <label>🍪 C3C / AppState (paste JSON array)</label>
+    <textarea id="cookies" placeholder='[{"key":"c_user","value":"...","domain":".facebook.com"}, ...]'></textarea>
+
+    <label>🔣 Bot Prefix</label>
+    <div class="prefix-group">
+      <input type="radio" name="pfx" id="p1" value="/" checked><label for="p1">/</label>
+      <input type="radio" name="pfx" id="p2" value="."><label for="p2">.</label>
+      <input type="radio" name="pfx" id="p3" value="#"><label for="p3">#</label>
+      <input type="radio" name="pfx" id="p4" value="@"><label for="p4">@</label>
+    </div>
+
+    <button id="startBtn">🚀 Save & Start Bot</button>
+    <div id="msg"></div>
+  </div>
+
+  <!-- DASHBOARD CARD -->
+  <div class="card">
+    <h2>📊 Dashboard / Live Logs <span id="status" class="status off">Not Started</span></h2>
+    <div id="log"></div>
+  </div>
+
+  <div class="footer">© RK RAJA MASTI BOT — Made with 💜</div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  const logEl = document.getElementById('log');
+  const statusEl = document.getElementById('status');
+  const msgEl = document.getElementById('msg');
+  const botIDInput = document.getElementById('botID');
+
+  socket.on('connect', () => addLog('Dashboard connected', 'ok'));
+
+  socket.on('botlog', msg => {
+    addLog(msg, msg.includes('ERROR') ? 'err' : '');
+    if (msg.includes('Bot logged in')) {
+      statusEl.textContent = 'Running';
+      statusEl.className = 'status on';
+    }
+  });
+
+  socket.on('bot-ready', data => {
+    if (data && data.botID) {
+      botIDInput.value = data.botID;
+      addLog('Bot ID detected: ' + data.botID, 'ok');
+    }
+  });
+
+  function addLog(text, cls='') {
+    const d = document.createElement('div');
+    d.className = 'log-' + (cls || 'info');
+    if (cls === 'err') d.classList.add('log-err');
+    if (cls === 'ok') d.classList.add('log-ok');
+    d.textContent = text;
+    logEl.appendChild(d);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  document.getElementById('startBtn').addEventListener('click', async () => {
+    const adminID = document.getElementById('adminID').value.trim();
+    const cookiesRaw = document.getElementById('cookies').value.trim();
+    const prefix = document.querySelector('input[name=pfx]:checked').value;
+
+    if (!adminID) return alert('Admin ID daalo!');
+    if (!cookiesRaw) return alert('C3C / AppState paste karo!');
+
+    let cookies;
+    try { cookies = JSON.parse(cookiesRaw); }
+    catch (e) { return alert('C3C JSON galat hai: ' + e.message); }
+
+    msgEl.textContent = '⏳ Sending config...';
+    try {
+      const res = await fetch('/configure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cookies, adminID, prefix })
+      });
+      const text = await res.text();
+      msgEl.textContent = text;
+      addLog('→ ' + text, 'ok');
+    } catch (e) {
+      msgEl.textContent = 'Error: ' + e.message;
+      addLog('Config error: ' + e.message, 'err');
+    }
+  });
+</script>
+</body>
+</html>
