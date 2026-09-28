@@ -1,52 +1,92 @@
-// server.js — RK RAJA MASTI BOT v2 (FYT MODE + LOCKS + FILE UPLOAD)
+// server.js — RK RAJA MASTI BOT v3 (FCA fallback + FYT + Locks + File upload + Bot UID)
 const express = require('express');
 const bodyParser = require('body-parser');
-const login = require('ws3-fca');
 const fs = require('fs');
 const http = require('http');
-const { Server } = require('socket.io');
 const path = require('path');
+const { Server } = require('socket.io');
 
+// ==================================================
+// ============ FCA LOADER (multi fallback) =========
+// ==================================================
+let login = null;
+let fcaName = 'unknown';
+
+function loadFCA() {
+  const candidates = [
+    'ws3-fca',
+    '@dongdev/fca-unofficial',
+    'fca-unofficial',
+    'facebook-chat-api',
+    'fca-super',
+    'fca-unofficial-custom'
+  ];
+  for (const name of candidates) {
+    try {
+      const mod = require(name);
+      const fn =
+        typeof mod === 'function' ? mod :
+        (mod && typeof mod.login === 'function') ? mod.login :
+        (mod && mod.default && typeof mod.default === 'function') ? mod.default :
+        (mod && mod.default && typeof mod.default.login === 'function') ? mod.default.login :
+        null;
+      if (typeof fn === 'function') {
+        login = fn;
+        fcaName = name;
+        return true;
+      }
+    } catch (e) { /* try next */ }
+  }
+  return false;
+}
+
+if (!loadFCA()) {
+  console.log('❌ No FCA package found. Install: npm i ws3-fca');
+  process.exit(1);
+}
+console.log('✅ FCA loaded:', fcaName);
+
+// ==================================================
+// ================== APP SETUP =====================
+// ==================================================
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// ================= CONFIG =================
+// ==================================================
+// ================== CONFIG ========================
+// ==================================================
 const BOT_NAME = 'RK RAJA XWD';
 const SIGNATURE = '\n\n❥ RK RAJA XWD ❥';
 const SEPARATOR = '\n━━━━━━━━━━━━━━━━━';
 const PREFIXES = ['/', '.', '#', '@'];
-const KICK_LIMIT = 3; // warnings before kick
+const KICK_LIMIT = 3;
 
-// ================= STATE =================
+// ==================================================
+// ================== STATE =========================
+// ==================================================
 let botAPI = null;
 let adminID = null;
 let botID = null;
 let prefix = '/';
 let currentCookies = null;
-let userData = {};
-let lastReply = {};
+let userData = {};              // { userID: { xp, level } }
+let lastReply = {};             // anti-spam per user
+let groupLocks = {};            // per-thread locks
+let spamCount = {};             // per-thread per-user warnings
 
-// groupLocks[threadID] = {
-//   name: string|null,               // locked group name
-//   nicknames: { userID: nick },     // locked nicknames
-//   msgLock: bool,                   // message locker
-//   spamLock: bool,                  // sticker/photo spam locker
-//   fyt: bool                        // full fyt mode
-// }
-let groupLocks = {};
-
-// spamCount[threadID][userID] = number
-let spamCount = {};
-
-// ================= LOG =================
+// ==================================================
+// ================== LOGGER ========================
+// ==================================================
 function emitLog(msg, isErr = false) {
   const line = `[${new Date().toISOString()}] ${isErr ? 'ERROR: ' : 'INFO: '}${msg}`;
   console.log(line);
   io.emit('botlog', line);
 }
 
-// ================= SHAYARI =================
+// ==================================================
+// ================== SHAYARI =======================
+// ==================================================
 const SHAYARI = [
   "Tere bina zindagi adhoori si lagti hai,\nTere saath har khushi poori si lagti hai 💕",
   "Chand bhi sharma jaye teri chamak se,\nTaare bhi jal jaye teri ek jhalak se 🌙✨",
@@ -95,7 +135,9 @@ const SHAYARI = [
   "Tere bina jeena mushkil hai,\nTere pyaar ka asar dil hai 🩹"
 ];
 
-// ================= FLIRT =================
+// ==================================================
+// ================== FLIRT =========================
+// ==================================================
 const FLIRT_WORDS = [
   'babu','sona','jaan','jaanu','jaana','i love you','love you','pyar',
   'mohabbat','cutie','sweetheart','baby','dear','honey','jaaneman',
@@ -138,21 +180,27 @@ const JOKES = [
   "Ladki: tumhe mujhme kya pasand hai? Main: bas tumhari WhatsApp DP 😜"
 ];
 
-// ================= LEVEL/XP =================
+// ==================================================
+// ================== LEVEL/XP ======================
+// ==================================================
 function getLevel(xp) { return Math.floor(Math.sqrt(xp / 50)) + 1; }
 function xpForNext(level) { return 50 * level * level; }
+
 function addXP(userID, amount = 10) {
   if (!userData[userID]) userData[userID] = { xp: 0, level: 1 };
   userData[userID].xp += amount;
   userData[userID].level = getLevel(userData[userID].xp);
   return userData[userID];
 }
+
 function getUser(userID) {
   if (!userData[userID]) userData[userID] = { xp: 0, level: 1 };
   return userData[userID];
 }
 
-// ================= HELPERS =================
+// ==================================================
+// ================== HELPERS =======================
+// ==================================================
 const rand = arr => arr[Math.floor(Math.random() * arr.length)];
 const hasFlirt = txt => FLIRT_WORDS.some(w => txt.toLowerCase().includes(w));
 const isAdmin = id => String(id) === String(adminID);
@@ -164,7 +212,9 @@ function isStickerOrPhoto(event) {
   );
 }
 
-// ================= REPLY BUILDER =================
+// ==================================================
+// ================== REPLY BUILDER =================
+// ==================================================
 async function buildReply(api, event, mainText) {
   const { senderID } = event;
   const u = addXP(senderID, 10);
@@ -191,7 +241,9 @@ ${SIGNATURE}
   return { body, mentions: [{ tag: `@${name}`, id: senderID }] };
 }
 
-// ================= HELP MENU =================
+// ==================================================
+// ================== HELP MENU =====================
+// ==================================================
 async function sendHelp(api, threadID) {
   const help =
 `╔═════════════════════════╗
@@ -228,33 +280,42 @@ ${prefix}help — Ye menu
   return api.sendMessage(help, threadID);
 }
 
-// ================= LOGIN =================
+// ==================================================
+// ================== LOGIN =========================
+// ==================================================
 function initializeBot(cookies) {
   emitLog('Initializing bot...');
   currentCookies = cookies;
 
-  login({ appState: cookies }, (err, api) => {
-    if (err) {
-      emitLog('Login error: ' + err.message, true);
-      setTimeout(() => initializeBot(cookies), 8000);
-      return;
-    }
-    botAPI = api;
-    botID = api.getCurrentUserID();
-    api.setOptions({ selfListen: false, listenEvents: true, updatePresence: false });
-    emitLog('Bot logged in successfully. Bot ID: ' + botID);
-    io.emit('bot-ready', { botID });
+  try {
+    login({ appState: cookies }, (err, api) => {
+      if (err) {
+        emitLog('Login error: ' + (err.message || JSON.stringify(err)), true);
+        setTimeout(() => initializeBot(cookies), 8000);
+        return;
+      }
+      botAPI = api;
+      try { botID = api.getCurrentUserID(); } catch {}
+      api.setOptions({ selfListen: false, listenEvents: true, updatePresence: false });
+      emitLog('Bot logged in successfully. Bot ID: ' + botID);
+      io.emit('bot-ready', { botID });
 
-    setTimeout(() => {
-      api.listenMqtt((err, event) => {
-        if (err) { emitLog('Listener err: ' + err.message, true); return; }
-        handleEvent(api, event).catch(e => emitLog('Handler: ' + e.message, true));
-      });
-    }, 1500);
-  });
+      setTimeout(() => {
+        api.listenMqtt((err, event) => {
+          if (err) { emitLog('Listener err: ' + err.message, true); return; }
+          handleEvent(api, event).catch(e => emitLog('Handler: ' + e.message, true));
+        });
+      }, 1500);
+    });
+  } catch (e) {
+    emitLog('Login threw: ' + e.message, true);
+    setTimeout(() => initializeBot(cookies), 8000);
+  }
 }
 
-// ================= MAIN EVENT HANDLER =================
+// ==================================================
+// ================== EVENT HANDLER =================
+// ==================================================
 async function handleEvent(api, event) {
   if (!event) return;
 
@@ -279,17 +340,16 @@ async function handleEvent(api, event) {
   const locks = groupLocks[threadID] || {};
 
   // ==================================================
-  // 1. MESSAGE LOCKER — sirf admin bol sakta hai
+  // 1. MESSAGE LOCKER
   // ==================================================
   if (locks.msgLock && !admin) {
-    // non-admin message → warn
     try {
       spamCount[threadID] = spamCount[threadID] || {};
       spamCount[threadID][senderID] = (spamCount[threadID][senderID] || 0) + 1;
       const c = spamCount[threadID][senderID];
 
       await api.sendMessage(
-        `🔒 Group message locked by admin!\n@User please ruk jao. Warning ${c}/${KICK_LIMIT}`,
+        `🔒 Group message locked by admin!\nWarning ${c}/${KICK_LIMIT}${SIGNATURE}`,
         threadID
       );
 
@@ -303,7 +363,7 @@ async function handleEvent(api, event) {
   }
 
   // ==================================================
-  // 2. SPAM LOCKER — sticker/photo/video
+  // 2. SPAM LOCKER
   // ==================================================
   if (locks.spamLock && !admin && isStickerOrPhoto(event)) {
     try {
@@ -312,7 +372,7 @@ async function handleEvent(api, event) {
       const c = spamCount[threadID][senderID];
 
       await api.sendMessage(
-        `🚫 Sticker/Photo spam allowed nahi!\nWarning ${c}/${KICK_LIMIT}`,
+        `🚫 Sticker/Photo spam allowed nahi!\nWarning ${c}/${KICK_LIMIT}${SIGNATURE}`,
         threadID
       );
 
@@ -327,7 +387,7 @@ async function handleEvent(api, event) {
 
   if (!body) return;
 
-  // ---- anti-spam delay ----
+  // anti-spam delay
   const now = Date.now();
   if (lastReply[senderID] && now - lastReply[senderID] < 1200) return;
   lastReply[senderID] = now;
@@ -341,22 +401,21 @@ async function handleEvent(api, event) {
     const cmd = parts[0];
     const args = parts.slice(1);
 
-    // ----- HELP (anyone) -----
+    // ---- HELP (anyone) ----
     if (cmd === 'help' || cmd === 'menu') {
       return sendHelp(api, threadID);
     }
 
-    // ---- admin-only commands ----
     if (admin) {
       // reset
       if (cmd === 'reset') {
         userData = {};
-        return api.sendMessage('✅ All XP reset.', threadID);
+        return api.sendMessage('✅ All XP reset.' + SIGNATURE, threadID);
       }
       // stats
       if (cmd === 'stats') {
         return api.sendMessage(
-          `📊 Total users tracked: ${Object.keys(userData).length}`,
+          `📊 Total users tracked: ${Object.keys(userData).length}${SIGNATURE}`,
           threadID
         );
       }
@@ -372,13 +431,13 @@ async function handleEvent(api, event) {
             catch {}
             await new Promise(r => setTimeout(r, 300));
           }
-          return api.sendMessage(`✅ Broadcast sent to ${sent} groups.`, threadID);
+          return api.sendMessage(`✅ Broadcast sent to ${sent} groups.${SIGNATURE}`, threadID);
         } catch (e) {
           return api.sendMessage('Broadcast error: ' + e.message, threadID);
         }
       }
 
-      // ----- FYT -----
+      // FYT
       if (cmd === 'fyt') {
         const sub = args[0];
         if (sub === 'on') {
@@ -408,7 +467,7 @@ async function handleEvent(api, event) {
         return api.sendMessage(`Usage: ${prefix}fyt on/off`, threadID);
       }
 
-      // ----- LOCK NAME -----
+      // LOCK NAME
       if (cmd === 'lockname') {
         const sub = args[0];
         if (sub === 'on') {
@@ -426,7 +485,7 @@ async function handleEvent(api, event) {
         return api.sendMessage(`Usage: ${prefix}lockname on/off`, threadID);
       }
 
-      // ----- LOCK NICK -----
+      // LOCK NICK
       if (cmd === 'locknick') {
         const sub = args[0];
         if (sub === 'on') {
@@ -452,7 +511,7 @@ async function handleEvent(api, event) {
         return api.sendMessage(`Usage: ${prefix}locknick on <nick> / off`, threadID);
       }
 
-      // ----- MSG LOCK -----
+      // MSG LOCK
       if (cmd === 'msglock') {
         const sub = args[0];
         groupLocks[threadID] = groupLocks[threadID] || { nicknames: {} };
@@ -468,7 +527,7 @@ async function handleEvent(api, event) {
         return api.sendMessage(`Usage: ${prefix}msglock on/off`, threadID);
       }
 
-      // ----- SPAM LOCK -----
+      // SPAM LOCK
       if (cmd === 'spamlock') {
         const sub = args[0];
         groupLocks[threadID] = groupLocks[threadID] || { nicknames: {} };
@@ -484,14 +543,13 @@ async function handleEvent(api, event) {
         return api.sendMessage(`Usage: ${prefix}spamlock on/off`, threadID);
       }
 
-      // ----- UNLOCK ALL -----
+      // UNLOCK ALL
       if (cmd === 'unlock' && args[0] === 'all') {
         delete groupLocks[threadID];
         delete spamCount[threadID];
         return api.sendMessage(`🔓 Sab unlock ho gaya.${SIGNATURE}`, threadID);
       }
     }
-    // unknown command → fall through to normal reply
   }
 
   // ==================================================
@@ -543,7 +601,9 @@ ${SIGNATURE}
   return api.sendMessage(await buildReply(api, event, rand(defaults)), threadID);
 }
 
-// ================= LOG HANDLERS =================
+// ==================================================
+// ============== LOG EVENT HANDLERS ================
+// ==================================================
 async function handleThreadNameChange(api, event) {
   const { threadID, authorID } = event;
   const newTitle = event.logMessageData?.name;
@@ -571,12 +631,11 @@ async function handleNicknameChange(api, event) {
   if (!locks || !locks.nicknames) return;
   if (String(authorID) === String(adminID)) return;
 
-  // bot nickname lock
   if (String(participantID) === String(botID) && newNick !== BOT_NAME) {
     try { await api.changeNickname(BOT_NAME, threadID, botID); } catch {}
     return;
   }
-  // user nickname lock
+
   const locked = locks.nicknames[participantID];
   if (locked && newNick !== locked) {
     try { await api.changeNickname(locked, threadID, participantID); } catch {}
@@ -597,7 +656,9 @@ async function handleUserJoined(api, event) {
   }
 }
 
-// ================= WEB DASHBOARD =================
+// ==================================================
+// ================== WEB ROUTES ====================
+// ==================================================
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(express.static('public'));
@@ -606,7 +667,8 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.ht
 
 app.post('/configure', (req, res) => {
   try {
-    let { cookies, adminID: aID, prefix: pfx } = req.body;
+    let { cookies, adminID: aID, prefix: pfx, botID: bID } = req.body;
+
     if (typeof cookies === 'string') cookies = JSON.parse(cookies);
     if (!Array.isArray(cookies) || cookies.length === 0)
       return res.status(400).send('❌ Invalid C3C / cookies array');
@@ -614,8 +676,9 @@ app.post('/configure', (req, res) => {
 
     adminID = String(aID).trim();
     prefix = PREFIXES.includes(pfx) ? pfx : '/';
+    if (bID) botID = String(bID).trim();
 
-    emitLog(`Admin: ${adminID} | Prefix: ${prefix}`);
+    emitLog(`Admin: ${adminID} | Prefix: ${prefix} | BotID: ${botID || 'auto'}`);
     res.send('✅ Configured. Bot starting...');
 
     initializeBot(cookies);
@@ -625,9 +688,11 @@ app.post('/configure', (req, res) => {
   }
 });
 
-// ================= SERVER =================
+// ==================================================
+// ================== SERVER ========================
+// ==================================================
 const PORT = process.env.PORT || 20018;
-server.listen(PORT, () => emitLog(`Server running on port ${PORT}`));
+server.listen(PORT, () => emitLog(`Server running on port ${PORT} | FCA: ${fcaName}`));
 
 io.on('connection', socket => {
   emitLog('Dashboard connected');
