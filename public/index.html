@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>RK RAJA — Masti Bot Dashboard v2</title>
+<title>RK RAJA — Masti Bot Dashboard v3</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',sans-serif}
   body{background:#0b0b16;color:#e5e7eb;min-height:100vh;padding-bottom:40px}
@@ -48,7 +48,6 @@
     border-color:#ec4899;color:#fff;transform:scale(1.03)
   }
 
-  /* FILE UPLOAD */
   .file-drop{
     margin-top:6px;padding:22px;border:2px dashed #3b3b5e;border-radius:10px;
     text-align:center;cursor:pointer;transition:.2s;background:#0b0b16
@@ -94,20 +93,19 @@
 
 <header>
   <h1>👑 RK RAJA</h1>
-  <span class="tag">MASTI BOT v2</span>
+  <span class="tag">MASTI BOT v3</span>
 </header>
 
 <div class="container">
 
-  <!-- CONFIG CARD -->
   <div class="card">
     <h2>⚙️ Bot Configuration</h2>
 
-    <label>🆔 Admin ID</label>
+    <label>🆔 Admin ID (Facebook numeric ID)</label>
     <input type="text" id="adminID" placeholder="100012345678901" />
 
-    <label>🤖 Bot ID <span style="color:#6b7280;font-weight:400">(auto-detect on login)</span></label>
-    <input type="text" id="botID" placeholder="auto-detect" disabled />
+    <label>🤖 Bot UID <span style="color:#6b7280;font-weight:400">(optional — auto detect on login)</span></label>
+    <input type="text" id="botID" placeholder="Bot ka Facebook UID paste karo" />
 
     <label>🍪 C3C / AppState</label>
     <div class="file-drop" id="fileDrop">
@@ -131,7 +129,6 @@
     <div id="msg"></div>
   </div>
 
-  <!-- DASHBOARD CARD -->
   <div class="card">
     <h2>📊 Dashboard / Live Logs <span id="status" class="status off">Not Started</span></h2>
     <div id="log"></div>
@@ -164,8 +161,8 @@
 
   socket.on('bot-ready', data => {
     if (data && data.botID) {
-      botIDInput.value = data.botID;
-      addLog('Bot ID: ' + data.botID, 'ok');
+      if (!botIDInput.value) botIDInput.value = data.botID;
+      addLog('Bot ID detected: ' + data.botID, 'ok');
     }
   });
 
@@ -178,9 +175,7 @@
     logEl.scrollTop = logEl.scrollHeight;
   }
 
-  // ===== FILE UPLOAD =====
   fileDrop.addEventListener('click', () => fileInput.click());
-
   fileDrop.addEventListener('dragover', e => {
     e.preventDefault();
     fileDrop.classList.add('drag');
@@ -191,7 +186,6 @@
     fileDrop.classList.remove('drag');
     if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
   });
-
   fileInput.addEventListener('change', e => {
     if (e.target.files.length) handleFile(e.target.files[0]);
   });
@@ -208,9 +202,9 @@
     reader.readAsText(file);
   }
 
-  // ===== START BOT =====
   document.getElementById('startBtn').addEventListener('click', async () => {
     const adminID = document.getElementById('adminID').value.trim();
+    const botIDval = document.getElementById('botID').value.trim();
     const cookiesRaw = cookiesTA.value.trim();
     const prefix = document.querySelector('input[name=pfx]:checked').value;
 
@@ -226,7 +220,12 @@
       const res = await fetch('/configure', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cookies, adminID, prefix })
+        body: JSON.stringify({
+          cookies,
+          adminID,
+          prefix,
+          botID: botIDval || null
+        })
       });
       const text = await res.text();
       msgEl.textContent = text;
