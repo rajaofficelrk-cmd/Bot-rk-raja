@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>RK RAJA — Masti Bot Dashboard v4</title>
+<title>RK RAJA — Masti Bot Dashboard v6</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',sans-serif}
   body{background:#0b0b16;color:#e5e7eb;min-height:100vh;padding-bottom:40px}
@@ -29,11 +29,11 @@
   }
 
   label{display:block;font-size:.85rem;color:#a78bfa;font-weight:600;margin-bottom:6px;margin-top:12px}
-  input[type=text], textarea, select{
+  input[type=text], textarea{
     width:100%;padding:10px 12px;background:#0b0b16;border:1px solid #2a2a44;
     border-radius:8px;color:#e5e7eb;font-size:.9rem;outline:none;transition:.2s
   }
-  input:focus,textarea:focus,select:focus{border-color:#a78bfa;box-shadow:0 0 0 3px rgba(167,139,250,.15)}
+  input:focus,textarea:focus{border-color:#a78bfa;box-shadow:0 0 0 3px rgba(167,139,250,.15)}
   textarea{min-height:130px;font-family:monospace;font-size:.8rem;resize:vertical}
 
   .prefix-group{display:flex;gap:10px;margin-top:6px}
@@ -60,13 +60,16 @@
   .file-drop .fname{margin-top:8px;font-size:.8rem;color:#34d399;font-weight:700}
 
   button{
-    width:100%;margin-top:18px;padding:13px;
-    background:linear-gradient(135deg,#7c3aed,#ec4899);
-    border:none;border-radius:10px;color:#fff;font-size:1rem;font-weight:700;
-    cursor:pointer;transition:.2s;letter-spacing:.5px
+    padding:13px;border:none;border-radius:10px;color:#fff;
+    font-size:1rem;font-weight:700;cursor:pointer;
+    transition:.2s;letter-spacing:.5px
   }
   button:hover{opacity:.9;transform:translateY(-1px)}
   button:disabled{opacity:.5;cursor:not-allowed}
+
+  .btn-start{background:linear-gradient(135deg,#7c3aed,#ec4899);width:100%}
+  .btn-stop{background:linear-gradient(135deg,#dc2626,#f97316);width:100%}
+  .btn-row{display:flex;gap:10px;margin-top:18px}
 
   #log{
     background:#06060f;border:1px solid #2a2a44;border-radius:10px;
@@ -84,7 +87,7 @@
   .status.on{background:#065f46;color:#6ee7b7}
   .status.off{background:#7f1d1d;color:#fca5a5}
 
-  #msg{margin-top:10px;font-size:.85rem;color:#fbbf24;text-align:center}
+  #msg{margin-top:10px;font-size:.85rem;color:#fbbf24;text-align:center;min-height:18px}
   .footer{text-align:center;color:#6b7280;font-size:.75rem;margin-top:20px}
   .hint{font-size:.72rem;color:#6b7280;margin-top:4px}
 </style>
@@ -93,7 +96,7 @@
 
 <header>
   <h1>👑 RK RAJA</h1>
-  <span class="tag">MASTI BOT v4</span>
+  <span class="tag">MASTI BOT v6</span>
 </header>
 
 <div class="container">
@@ -125,7 +128,10 @@
       <input type="radio" name="pfx" id="p4" value="@"><label for="p4">@</label>
     </div>
 
-    <button id="startBtn">🚀 Save & Start Bot</button>
+    <div class="btn-row">
+      <button id="startBtn" class="btn-start">🚀 Start Bot</button>
+      <button id="stopBtn" class="btn-stop">🛑 Stop Bot</button>
+    </div>
     <div id="msg"></div>
   </div>
 
@@ -157,6 +163,10 @@
       statusEl.textContent = 'Running';
       statusEl.className = 'status on';
     }
+    if (msg.includes('Bot stopped')) {
+      statusEl.textContent = 'Stopped';
+      statusEl.className = 'status off';
+    }
   });
 
   socket.on('bot-ready', data => {
@@ -164,6 +174,12 @@
       if (!botIDInput.value) botIDInput.value = data.botID;
       addLog('Bot ID detected: ' + data.botID, 'ok');
     }
+  });
+
+  socket.on('bot-stopped', () => {
+    statusEl.textContent = 'Stopped';
+    statusEl.className = 'status off';
+    addLog('Bot stopped.', 'err');
   });
 
   function addLog(text, cls='') {
@@ -202,6 +218,7 @@
     reader.readAsText(file);
   }
 
+  // START
   document.getElementById('startBtn').addEventListener('click', async () => {
     const adminID = document.getElementById('adminID').value.trim();
     const botIDval = document.getElementById('botID').value.trim();
@@ -228,6 +245,23 @@
     } catch (e) {
       msgEl.textContent = 'Error: ' + e.message;
       addLog('Config error: ' + e.message, 'err');
+    }
+  });
+
+  // STOP
+  document.getElementById('stopBtn').addEventListener('click', async () => {
+    if (!confirm('Bot band karna hai?')) return;
+    msgEl.textContent = '⏳ Stopping...';
+    try {
+      const res = await fetch('/stop', { method: 'POST' });
+      const text = await res.text();
+      msgEl.textContent = text;
+      addLog('→ ' + text, 'ok');
+      statusEl.textContent = 'Stopped';
+      statusEl.className = 'status off';
+    } catch (e) {
+      msgEl.textContent = 'Stop error: ' + e.message;
+      addLog('Stop error: ' + e.message, 'err');
     }
   });
 </script>
