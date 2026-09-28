@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>RK RAJA — Masti Bot Dashboard v3</title>
+<title>RK RAJA — Masti Bot Dashboard v4</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',sans-serif}
   body{background:#0b0b16;color:#e5e7eb;min-height:100vh;padding-bottom:40px}
@@ -93,7 +93,7 @@
 
 <header>
   <h1>👑 RK RAJA</h1>
-  <span class="tag">MASTI BOT v3</span>
+  <span class="tag">MASTI BOT v4</span>
 </header>
 
 <div class="container">
@@ -220,12 +220,7 @@
       const res = await fetch('/configure', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cookies,
-          adminID,
-          prefix,
-          botID: botIDval || null
-        })
+        body: JSON.stringify({ cookies, adminID, prefix, botID: botIDval || null })
       });
       const text = await res.text();
       msgEl.textContent = text;
