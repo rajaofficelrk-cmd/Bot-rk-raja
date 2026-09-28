@@ -3,29 +3,25 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>RK RAJA — Masti Bot Dashboard</title>
+<title>RK RAJA — Masti Bot Dashboard v2</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',sans-serif}
   body{background:#0b0b16;color:#e5e7eb;min-height:100vh;padding-bottom:40px}
 
-  /* HEADER */
   header{
     background:linear-gradient(135deg,#7c3aed,#ec4899);
     padding:18px 24px;
     display:flex;align-items:center;justify-content:space-between;
     box-shadow:0 4px 20px rgba(236,72,153,.35);
+    position:sticky;top:0;z-index:10
   }
   header h1{font-size:1.35rem;color:#fff;letter-spacing:1px}
   header .tag{font-size:.75rem;color:#fde68a;background:rgba(0,0,0,.25);padding:4px 10px;border-radius:20px}
 
-  .container{max-width:820px;margin:24px auto;padding:0 16px}
+  .container{max-width:850px;margin:24px auto;padding:0 16px}
   .card{
-    background:#161628;
-    border:1px solid #2a2a44;
-    border-radius:14px;
-    padding:20px;
-    margin-bottom:20px;
-    box-shadow:0 6px 24px rgba(0,0,0,.5)
+    background:#161628;border:1px solid #2a2a44;border-radius:14px;
+    padding:20px;margin-bottom:20px;box-shadow:0 6px 24px rgba(0,0,0,.5)
   }
   .card h2{
     font-size:1.05rem;color:#c4b5fd;margin-bottom:16px;
@@ -34,22 +30,17 @@
 
   label{display:block;font-size:.85rem;color:#a78bfa;font-weight:600;margin-bottom:6px;margin-top:12px}
   input[type=text], textarea, select{
-    width:100%;padding:10px 12px;
-    background:#0b0b16;border:1px solid #2a2a44;border-radius:8px;
-    color:#e5e7eb;font-size:.9rem;outline:none;transition:.2s
+    width:100%;padding:10px 12px;background:#0b0b16;border:1px solid #2a2a44;
+    border-radius:8px;color:#e5e7eb;font-size:.9rem;outline:none;transition:.2s
   }
   input:focus,textarea:focus,select:focus{border-color:#a78bfa;box-shadow:0 0 0 3px rgba(167,139,250,.15)}
   textarea{min-height:130px;font-family:monospace;font-size:.8rem;resize:vertical}
-
-  .row{display:flex;gap:12px}
-  .row > div{flex:1}
 
   .prefix-group{display:flex;gap:10px;margin-top:6px}
   .prefix-group label{
     flex:1;margin:0;padding:10px;text-align:center;
     background:#0b0b16;border:2px solid #2a2a44;border-radius:8px;
-    cursor:pointer;font-size:1.05rem;color:#e5e7eb;
-    transition:.2s;font-weight:700
+    cursor:pointer;font-size:1.05rem;color:#e5e7eb;transition:.2s;font-weight:700
   }
   .prefix-group input{display:none}
   .prefix-group input:checked + label{
@@ -57,19 +48,30 @@
     border-color:#ec4899;color:#fff;transform:scale(1.03)
   }
 
+  /* FILE UPLOAD */
+  .file-drop{
+    margin-top:6px;padding:22px;border:2px dashed #3b3b5e;border-radius:10px;
+    text-align:center;cursor:pointer;transition:.2s;background:#0b0b16
+  }
+  .file-drop:hover{border-color:#a78bfa;background:#13132a}
+  .file-drop.drag{border-color:#ec4899;background:#1e1030}
+  .file-drop input{display:none}
+  .file-drop p{font-size:.85rem;color:#9ca3af}
+  .file-drop .icon{font-size:1.6rem;display:block;margin-bottom:6px}
+  .file-drop .fname{margin-top:8px;font-size:.8rem;color:#34d399;font-weight:700}
+
   button{
     width:100%;margin-top:18px;padding:13px;
     background:linear-gradient(135deg,#7c3aed,#ec4899);
-    border:none;border-radius:10px;color:#fff;
-    font-size:1rem;font-weight:700;cursor:pointer;
-    transition:.2s;letter-spacing:.5px
+    border:none;border-radius:10px;color:#fff;font-size:1rem;font-weight:700;
+    cursor:pointer;transition:.2s;letter-spacing:.5px
   }
   button:hover{opacity:.9;transform:translateY(-1px)}
   button:disabled{opacity:.5;cursor:not-allowed}
 
   #log{
     background:#06060f;border:1px solid #2a2a44;border-radius:10px;
-    padding:12px;height:280px;overflow-y:auto;
+    padding:12px;height:300px;overflow-y:auto;
     font-family:'Courier New',monospace;font-size:.78rem;
     line-height:1.5;color:#9ca3af;white-space:pre-wrap;word-break:break-all
   }
@@ -85,13 +87,14 @@
 
   #msg{margin-top:10px;font-size:.85rem;color:#fbbf24;text-align:center}
   .footer{text-align:center;color:#6b7280;font-size:.75rem;margin-top:20px}
+  .hint{font-size:.72rem;color:#6b7280;margin-top:4px}
 </style>
 </head>
 <body>
 
 <header>
   <h1>👑 RK RAJA</h1>
-  <span class="tag">MASTI BOT</span>
+  <span class="tag">MASTI BOT v2</span>
 </header>
 
 <div class="container">
@@ -103,10 +106,17 @@
     <label>🆔 Admin ID</label>
     <input type="text" id="adminID" placeholder="100012345678901" />
 
-    <label>🤖 Bot ID <span style="color:#6b7280;font-weight:400">(optional, auto detect)</span></label>
-    <input type="text" id="botID" placeholder="auto-detect on login" disabled />
+    <label>🤖 Bot ID <span style="color:#6b7280;font-weight:400">(auto-detect on login)</span></label>
+    <input type="text" id="botID" placeholder="auto-detect" disabled />
 
-    <label>🍪 C3C / AppState (paste JSON array)</label>
+    <label>🍪 C3C / AppState</label>
+    <div class="file-drop" id="fileDrop">
+      <input type="file" id="c3cFile" accept=".json,.txt" />
+      <span class="icon">📁</span>
+      <p>Click karo ya file drag karo (.json / .txt)</p>
+      <div class="fname" id="fileName"></div>
+    </div>
+    <div class="hint">Ya niche paste karo directly:</div>
     <textarea id="cookies" placeholder='[{"key":"c_user","value":"...","domain":".facebook.com"}, ...]'></textarea>
 
     <label>🔣 Bot Prefix</label>
@@ -137,6 +147,10 @@
   const statusEl = document.getElementById('status');
   const msgEl = document.getElementById('msg');
   const botIDInput = document.getElementById('botID');
+  const fileInput = document.getElementById('c3cFile');
+  const fileDrop = document.getElementById('fileDrop');
+  const fileName = document.getElementById('fileName');
+  const cookiesTA = document.getElementById('cookies');
 
   socket.on('connect', () => addLog('Dashboard connected', 'ok'));
 
@@ -151,13 +165,12 @@
   socket.on('bot-ready', data => {
     if (data && data.botID) {
       botIDInput.value = data.botID;
-      addLog('Bot ID detected: ' + data.botID, 'ok');
+      addLog('Bot ID: ' + data.botID, 'ok');
     }
   });
 
   function addLog(text, cls='') {
     const d = document.createElement('div');
-    d.className = 'log-' + (cls || 'info');
     if (cls === 'err') d.classList.add('log-err');
     if (cls === 'ok') d.classList.add('log-ok');
     d.textContent = text;
@@ -165,13 +178,44 @@
     logEl.scrollTop = logEl.scrollHeight;
   }
 
+  // ===== FILE UPLOAD =====
+  fileDrop.addEventListener('click', () => fileInput.click());
+
+  fileDrop.addEventListener('dragover', e => {
+    e.preventDefault();
+    fileDrop.classList.add('drag');
+  });
+  fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('drag'));
+  fileDrop.addEventListener('drop', e => {
+    e.preventDefault();
+    fileDrop.classList.remove('drag');
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+
+  fileInput.addEventListener('change', e => {
+    if (e.target.files.length) handleFile(e.target.files[0]);
+  });
+
+  function handleFile(file) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const text = ev.target.result;
+      cookiesTA.value = text;
+      fileName.textContent = '✅ Loaded: ' + file.name + ' (' + text.length + ' chars)';
+      addLog('C3C file loaded: ' + file.name, 'ok');
+    };
+    reader.onerror = () => addLog('File read error', 'err');
+    reader.readAsText(file);
+  }
+
+  // ===== START BOT =====
   document.getElementById('startBtn').addEventListener('click', async () => {
     const adminID = document.getElementById('adminID').value.trim();
-    const cookiesRaw = document.getElementById('cookies').value.trim();
+    const cookiesRaw = cookiesTA.value.trim();
     const prefix = document.querySelector('input[name=pfx]:checked').value;
 
     if (!adminID) return alert('Admin ID daalo!');
-    if (!cookiesRaw) return alert('C3C / AppState paste karo!');
+    if (!cookiesRaw) return alert('C3C file upload karo ya paste karo!');
 
     let cookies;
     try { cookies = JSON.parse(cookiesRaw); }
