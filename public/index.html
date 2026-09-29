@@ -3,1733 +3,236 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>RK RAJA — Masti Bot Dashboard v7</title>
-
+<title>RK RAJA XWD — Bot Dashboard</title>
 <style>
-  *{
-    box-sizing:border-box;
-    margin:0;
-    padding:0;
-    font-family:'Segoe UI',sans-serif
-  }
-
-  body{
-    background:#0b0b16;
-    color:#e5e7eb;
-    min-height:100vh;
-    padding-bottom:40px
-  }
-
-  header{
-    background:linear-gradient(135deg,#7c3aed,#ec4899);
-    padding:18px 24px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    box-shadow:0 4px 20px rgba(236,72,153,.35);
-    position:sticky;
-    top:0;
-    z-index:10
-  }
-
-  header h1{
-    font-size:1.35rem;
-    color:#fff;
-    letter-spacing:1px
-  }
-
-  header .tag{
-    font-size:.75rem;
-    color:#fde68a;
-    background:rgba(0,0,0,.25);
-    padding:4px 10px;
-    border-radius:20px
-  }
-
-  .container{
-    max-width:850px;
-    margin:24px auto;
-    padding:0 16px
-  }
-
-  .card{
-    background:#161628;
-    border:1px solid #2a2a44;
-    border-radius:14px;
-    padding:20px;
-    margin-bottom:20px;
-    box-shadow:0 6px 24px rgba(0,0,0,.5)
-  }
-
-  .card h2{
-    font-size:1.05rem;
-    color:#c4b5fd;
-    margin-bottom:16px;
-    display:flex;
-    align-items:center;
-    gap:8px
-  }
-
-  label{
-    display:block;
-    font-size:.85rem;
-    color:#a78bfa;
-    font-weight:600;
-    margin-bottom:6px;
-    margin-top:12px
-  }
-
-  input[type=text],
-  textarea{
-    width:100%;
-    padding:10px 12px;
-    background:#0b0b16;
-    border:1px solid #2a2a44;
-    border-radius:8px;
-    color:#e5e7eb;
-    font-size:.9rem;
-    outline:none;
-    transition:.2s
-  }
-
-  input:focus,
-  textarea:focus{
-    border-color:#a78bfa;
-    box-shadow:0 0 0 3px rgba(167,139,250,.15)
-  }
-
-  textarea{
-    min-height:130px;
-    font-family:monospace;
-    font-size:.8rem;
-    resize:vertical
-  }
-
-  .prefix-group{
-    display:flex;
-    gap:10px;
-    margin-top:6px
-  }
-
-  .prefix-group label{
-    flex:1;
-    margin:0;
-    padding:10px;
-    text-align:center;
-    background:#0b0b16;
-    border:2px solid #2a2a44;
-    border-radius:8px;
-    cursor:pointer;
-    font-size:1.05rem;
-    color:#e5e7eb;
-    transition:.2s;
-    font-weight:700
-  }
-
-  .prefix-group input{
-    display:none
-  }
-
-  .prefix-group input:checked + label{
-    background:linear-gradient(135deg,#7c3aed,#ec4899);
-    border-color:#ec4899;
-    color:#fff;
-    transform:scale(1.03)
-  }
-
-  .mode-group{
-    display:flex;
-    gap:10px;
-    margin-top:6px
-  }
-
-  .mode-group label{
-    flex:1;
-    margin:0;
-    padding:10px;
-    text-align:center;
-    background:#0b0b16;
-    border:2px solid #2a2a44;
-    border-radius:8px;
-    cursor:pointer;
-    font-size:.85rem;
-    color:#e5e7eb;
-    transition:.2s;
-    font-weight:700
-  }
-
-  .mode-group input{
-    display:none
-  }
-
-  .mode-group input:checked + label{
-    background:linear-gradient(135deg,#7c3aed,#ec4899);
-    border-color:#ec4899;
-    color:#fff
-  }
-
-  .file-drop{
-    margin-top:6px;
-    padding:22px;
-    border:2px dashed #3b3b5e;
-    border-radius:10px;
-    text-align:center;
-    cursor:pointer;
-    transition:.2s;
-    background:#0b0b16
-  }
-
-  .file-drop:hover{
-    border-color:#a78bfa;
-    background:#13132a
-  }
-
-  .file-drop.drag{
-    border-color:#ec4899;
-    background:#1e1030
-  }
-
-  .file-drop input{
-    display:none
-  }
-
-  .file-drop p{
-    font-size:.85rem;
-    color:#9ca3af
-  }
-
-  .file-drop .icon{
-    font-size:1.6rem;
-    display:block;
-    margin-bottom:6px
-  }
-
-  .file-drop .fname{
-    margin-top:8px;
-    font-size:.8rem;
-    color:#34d399;
-    font-weight:700
-  }
-
-  button{
-    padding:13px;
-    border:none;
-    border-radius:10px;
-    color:#fff;
-    font-size:1rem;
-    font-weight:700;
-    cursor:pointer;
-    transition:.2s;
-    letter-spacing:.5px
-  }
-
-  button:hover{
-    opacity:.9;
-    transform:translateY(-1px)
-  }
-
-  button:disabled{
-    opacity:.5;
-    cursor:not-allowed;
-    transform:none
-  }
-
-  .btn-start{
-    background:linear-gradient(135deg,#7c3aed,#ec4899);
-    width:100%
-  }
-
-  .btn-stop{
-    background:linear-gradient(135deg,#dc2626,#f97316);
-    width:100%
-  }
-
-  .btn-row{
-    display:flex;
-    gap:10px;
-    margin-top:18px
-  }
-
-  #log{
-    background:#06060f;
-    border:1px solid #2a2a44;
-    border-radius:10px;
-    padding:12px;
-    height:300px;
-    overflow-y:auto;
-    font-family:'Courier New',monospace;
-    font-size:.78rem;
-    line-height:1.5;
-    color:#9ca3af;
-    white-space:pre-wrap;
-    word-break:break-all
-  }
-
-  .log-err{
-    color:#f87171
-  }
-
-  .log-ok{
-    color:#34d399
-  }
-
-  .status{
-    display:inline-block;
-    padding:4px 12px;
-    border-radius:20px;
-    font-size:.72rem;
-    font-weight:700;
-    margin-left:8px
-  }
-
-  .status.on{
-    background:#065f46;
-    color:#6ee7b7
-  }
-
-  .status.off{
-    background:#7f1d1d;
-    color:#fca5a5
-  }
-
-  #msg{
-    margin-top:10px;
-    font-size:.85rem;
-    color:#fbbf24;
-    text-align:center;
-    min-height:18px
-  }
-
-  .footer{
-    text-align:center;
-    color:#6b7280;
-    font-size:.75rem;
-    margin-top:20px
-  }
-
-  .hint{
-    font-size:.72rem;
-    color:#6b7280;
-    margin-top:4px;
-    line-height:1.5
-  }
-
-  .fyt-actions{
-    margin-top:14px;
-    display:flex;
-    gap:10px
-  }
-
-  .fyt-actions button{
-    flex:1
-  }
-
-  .btn-secondary{
-    background:#27273d;
-    border:1px solid #3b3b5e
-  }
-
-  @media(max-width:600px){
-    .btn-row{
-      flex-direction:column
-    }
-
-    .mode-group{
-      flex-direction:column
-    }
-
-    .fyt-actions{
-      flex-direction:column
-    }
-
-    header{
-      padding:16px
-    }
-
-    header h1{
-      font-size:1.1rem
-    }
-
-    header .tag{
-      font-size:.65rem
-    }
-  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',sans-serif}
+  body{background:#0b0b16;color:#e5e7eb;min-height:100vh;padding-bottom:40px}
+  header{background:linear-gradient(135deg,#7c3aed,#ec4899);padding:18px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 20px rgba(236,72,153,.35);position:sticky;top:0;z-index:10}
+  header h1{font-size:1.35rem;color:#fff;letter-spacing:1px}
+  header .tag{font-size:.75rem;color:#fde68a;background:rgba(0,0,0,.25);padding:4px 10px;border-radius:20px}
+  .container{max-width:850px;margin:24px auto;padding:0 16px}
+  .card{background:#161628;border:1px solid #2a2a44;border-radius:14px;padding:20px;margin-bottom:20px;box-shadow:0 6px 24px rgba(0,0,0,.5)}
+  .card h2{font-size:1.05rem;color:#c4b5fd;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+  label{display:block;font-size:.85rem;color:#a78bfa;font-weight:600;margin-bottom:6px;margin-top:12px}
+  input[type=text],textarea{width:100%;padding:10px 12px;background:#0b0b16;border:1px solid #2a2a44;border-radius:8px;color:#e5e7eb;font-size:.9rem;outline:none;transition:.2s}
+  input:focus,textarea:focus{border-color:#a78bfa;box-shadow:0 0 0 3px rgba(167,139,250,.15)}
+  textarea{min-height:130px;font-family:monospace;font-size:.8rem;resize:vertical}
+  .prefix-group{display:flex;gap:10px;margin-top:6px}
+  .prefix-group label{flex:1;margin:0;padding:10px;text-align:center;background:#0b0b16;border:2px solid #2a2a44;border-radius:8px;cursor:pointer;font-size:1.05rem;color:#e5e7eb;transition:.2s;font-weight:700}
+  .prefix-group input{display:none}
+  .prefix-group input:checked+label{background:linear-gradient(135deg,#7c3aed,#ec4899);border-color:#ec4899;color:#fff;transform:scale(1.03)}
+  .file-drop{margin-top:6px;padding:22px;border:2px dashed #3b3b5e;border-radius:10px;text-align:center;cursor:pointer;transition:.2s;background:#0b0b16}
+  .file-drop:hover{border-color:#a78bfa;background:#13132a}
+  .file-drop.drag{border-color:#ec4899;background:#1e1030}
+  .file-drop input{display:none}
+  .file-drop p{font-size:.85rem;color:#9ca3af}
+  .file-drop .icon{font-size:1.6rem;display:block;margin-bottom:6px}
+  .file-drop .fname{margin-top:8px;font-size:.8rem;color:#34d399;font-weight:700}
+  button{padding:13px;border:none;border-radius:10px;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;transition:.2s;letter-spacing:.5px}
+  button:hover{opacity:.9;transform:translateY(-1px)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .btn-start{background:linear-gradient(135deg,#7c3aed,#ec4899);width:100%}
+  .btn-stop{background:linear-gradient(135deg,#dc2626,#f97316);width:100%}
+  .btn-row{display:flex;gap:10px;margin-top:18px}
+  #log{background:#06060f;border:1px solid #2a2a44;border-radius:10px;padding:12px;height:300px;overflow-y:auto;font-family:'Courier New',monospace;font-size:.78rem;line-height:1.5;color:#9ca3af;white-space:pre-wrap;word-break:break-all}
+  .log-err{color:#f87171}
+  .log-ok{color:#34d399}
+  .status{display:inline-block;padding:4px 12px;border-radius:20px;font-size:.72rem;font-weight:700;margin-left:8px}
+  .status.on{background:#065f46;color:#6ee7b7}
+  .status.off{background:#7f1d1d;color:#fca5a5}
+  #msg{margin-top:10px;font-size:.85rem;color:#fbbf24;text-align:center;min-height:18px}
+  .footer{text-align:center;color:#6b7280;font-size:.75rem;margin-top:20px}
+  .hint{font-size:.72rem;color:#6b7280;margin-top:4px}
 </style>
 </head>
-
 <body>
 
 <header>
-  <h1>👑 RK RAJA</h1>
-  <span class="tag">MASTI BOT v7</span>
+  <h1>👑 RK RAJA XWD</h1>
+  <span class="tag">MASTI BOT v13</span>
 </header>
 
 <div class="container">
 
-  <!-- ================= BOT CONFIGURATION ================= -->
-
   <div class="card">
-
     <h2>⚙️ Bot Configuration</h2>
 
-    <label>🆔 Admin ID (Facebook numeric ID)</label>
-    <input
-      type="text"
-      id="adminID"
-      placeholder="100012345678901"
-    />
+    <label>🆔 Admin ID</label>
+    <input type="text" id="adminID" placeholder="100012345678901" />
 
-    <label>
-      🤖 Bot UID
-      <span style="color:#6b7280;font-weight:400">
-        (optional)
-      </span>
-    </label>
-
-    <input
-      type="text"
-      id="botID"
-      placeholder="Bot ka Facebook UID paste karo"
-    />
+    <label>🤖 Bot UID (optional)</label>
+    <input type="text" id="botID" placeholder="auto detect" />
 
     <label>🔐 Login Mode</label>
-
-    <div class="mode-group">
-
-      <input
-        type="radio"
-        name="mode"
-        id="m1"
-        value="c3c"
-        checked
-      >
-
-      <label for="m1">
-        🍪 C3C / AppState (JSON)
-      </label>
-
-      <input
-        type="radio"
-        name="mode"
-        id="m2"
-        value="cookies"
-      >
-
-      <label for="m2">
-        📝 Raw Cookies (String)
-      </label>
-
+    <div class="prefix-group">
+      <input type="radio" name="mode" id="m1" value="c3c" checked><label for="m1">🍪 C3C</label>
+      <input type="radio" name="mode" id="m2" value="cookies"><label for="m2">📝 Cookies</label>
     </div>
-
-    <!-- C3C MODE -->
 
     <div id="c3cSection">
-
-      <label>
-        🍪 C3C / AppState (JSON array)
-      </label>
-
-      <div
-        class="file-drop"
-        id="fileDrop"
-      >
-
-        <input
-          type="file"
-          id="c3cFile"
-          accept=".json,.txt"
-        />
-
+      <label>🍪 C3C / AppState</label>
+      <div class="file-drop" id="fileDrop">
+        <input type="file" id="c3cFile" accept=".json,.txt" />
         <span class="icon">📁</span>
-
-        <p>
-          Click karo ya file drag karo
-          (.json / .txt)
-        </p>
-
-        <div
-          class="fname"
-          id="fileName"
-        ></div>
-
+        <p>Click ya drag karke file daalo</p>
+        <div class="fname" id="fileName"></div>
       </div>
-
-      <div class="hint">
-        Ya niche paste karo directly:
-      </div>
-
-      <textarea
-        id="cookies"
-        placeholder='[{"key":"c_user","value":"...","domain":".facebook.com"}, ...]'
-      ></textarea>
-
+      <div class="hint">Ya niche paste karo:</div>
+      <textarea id="cookies" placeholder='[{"key":"c_user","value":"..."}]'></textarea>
     </div>
 
-    <!-- RAW COOKIES -->
-
-    <div
-      id="rawSection"
-      style="display:none"
-    >
-
-      <label>
-        📝 Raw Cookie String
-      </label>
-
-      <textarea
-        id="rawCookies"
-        placeholder="c_user=100012345678; xs=abc123xyz; datr=xyzabc; sb=abc; fr=xyz"
-      ></textarea>
-
-      <div class="hint">
-        Browser DevTools → Application → Cookies
-        se copy karo. Ek line me paste karo.
-      </div>
-
+    <div id="rawSection" style="display:none">
+      <label>📝 Raw Cookie String</label>
+      <textarea id="rawCookies" placeholder='c_user=1000123; xs=abc123; datr=xyz; sb=abc; fr=xyz'></textarea>
     </div>
 
-    <label>🔣 Bot Prefix</label>
-
+    <label>🔣 Prefix</label>
     <div class="prefix-group">
-
-      <input
-        type="radio"
-        name="pfx"
-        id="p1"
-        value="/"
-        checked
-      >
-      <label for="p1">/</label>
-
-      <input
-        type="radio"
-        name="pfx"
-        id="p2"
-        value="."
-      >
-      <label for="p2">.</label>
-
-      <input
-        type="radio"
-        name="pfx"
-        id="p3"
-        value="#"
-      >
-      <label for="p3">#</label>
-
-      <input
-        type="radio"
-        name="pfx"
-        id="p4"
-        value="@"
-      >
-      <label for="p4">@</label>
-
+      <input type="radio" name="pfx" id="p1" value="/" checked><label for="p1">/</label>
+      <input type="radio" name="pfx" id="p2" value="."><label for="p2">.</label>
+      <input type="radio" name="pfx" id="p3" value="#"><label for="p3">#</label>
+      <input type="radio" name="pfx" id="p4" value="@"><label for="p4">@</label>
     </div>
 
     <div class="btn-row">
-
-      <button
-        id="startBtn"
-        class="btn-start"
-      >
-        🚀 Start Bot
-      </button>
-
-      <button
-        id="stopBtn"
-        class="btn-stop"
-      >
-        🛑 Stop Bot
-      </button>
-
+      <button id="startBtn" class="btn-start">🚀 Start Bot</button>
+      <button id="stopBtn" class="btn-stop">🛑 Stop Bot</button>
     </div>
-
     <div id="msg"></div>
-
   </div>
 
-
-  <!-- ================= FYT FILE ================= -->
-
   <div class="card">
-
-    <h2>
-      📄 FYT File
-      <span
-        id="fytStatus"
-        class="status off"
-      >
-        Not Loaded
-      </span>
-    </h2>
-
-    <label>📁 FYT TXT File</label>
-
-    <div
-      class="file-drop"
-      id="fytDrop"
-    >
-
-      <input
-        type="file"
-        id="fytFile"
-        accept=".txt"
-      />
-
-      <span class="icon">📄</span>
-
-      <p>
-        Click karo ya TXT file drag & drop karo
-      </p>
-
-      <div
-        class="fname"
-        id="fytFileName"
-      ></div>
-
-    </div>
-
-    <div class="hint">
-      TXT ki lines bot me load hongi.
-      <br>
-      Last line ke baad bot dobara first line se continue karega.
-    </div>
-
-    <label>
-      ⏱️ Line Interval (seconds)
-    </label>
-
-    <input
-      type="text"
-      id="fytInterval"
-      value="10"
-      placeholder="10"
-    />
-
-    <div class="hint">
-      Example: 10 = har 10 second me next line.
-    </div>
-
-    <div class="fyt-actions">
-
-      <button
-        id="uploadFytBtn"
-        class="btn-start"
-      >
-        📤 Upload FYT File
-      </button>
-
-      <button
-        id="clearFytBtn"
-        class="btn-secondary"
-      >
-        🗑️ Clear
-      </button>
-
-    </div>
-
-    <div
-      id="fytMsg"
-      style="
-        margin-top:10px;
-        text-align:center;
-        color:#fbbf24;
-        min-height:18px;
-      "
-    ></div>
-
-  </div>
-
-
-  <!-- ================= DASHBOARD LOG ================= -->
-
-  <div class="card">
-
-    <h2>
-      📊 Dashboard / Live Logs
-
-      <span
-        id="status"
-        class="status off"
-      >
-        Not Started
-      </span>
-    </h2>
-
+    <h2>📊 Live Logs <span id="status" class="status off">Not Started</span></h2>
     <div id="log"></div>
-
   </div>
 
-
-  <div class="footer">
-    © RK RAJA MASTI BOT — Made with 💜
-  </div>
-
+  <div class="footer">© RK RAJA XWD — Made with 💜</div>
 </div>
 
-
 <script src="/socket.io/socket.io.js"></script>
-
 <script>
-
-  // =====================================================
-  // ELEMENTS
-  // =====================================================
-
   const socket = io();
+  const logEl = document.getElementById('log');
+  const statusEl = document.getElementById('status');
+  const msgEl = document.getElementById('msg');
+  const botIDInput = document.getElementById('botID');
+  const fileInput = document.getElementById('c3cFile');
+  const fileDrop = document.getElementById('fileDrop');
+  const fileName = document.getElementById('fileName');
+  const cookiesTA = document.getElementById('cookies');
+  const rawTA = document.getElementById('rawCookies');
+  const c3cSection = document.getElementById('c3cSection');
+  const rawSection = document.getElementById('rawSection');
 
-  const logEl =
-    document.getElementById('log');
+  document.querySelectorAll('input[name=mode]').forEach(r => {
+    r.addEventListener('change', () => {
+      const m = document.querySelector('input[name=mode]:checked').value;
+      c3cSection.style.display = m === 'c3c' ? '' : 'none';
+      rawSection.style.display = m === 'cookies' ? '' : 'none';
+    });
+  });
 
-  const statusEl =
-    document.getElementById('status');
-
-  const msgEl =
-    document.getElementById('msg');
-
-  const botIDInput =
-    document.getElementById('botID');
-
-  const fileInput =
-    document.getElementById('c3cFile');
-
-  const fileDrop =
-    document.getElementById('fileDrop');
-
-  const fileName =
-    document.getElementById('fileName');
-
-  const cookiesTA =
-    document.getElementById('cookies');
-
-  const rawTA =
-    document.getElementById('rawCookies');
-
-  const c3cSection =
-    document.getElementById('c3cSection');
-
-  const rawSection =
-    document.getElementById('rawSection');
-
-
-  // =====================================================
-  // FYT ELEMENTS
-  // =====================================================
-
-  const fytDrop =
-    document.getElementById('fytDrop');
-
-  const fytFile =
-    document.getElementById('fytFile');
-
-  const fytFileName =
-    document.getElementById('fytFileName');
-
-  const fytInterval =
-    document.getElementById('fytInterval');
-
-  const uploadFytBtn =
-    document.getElementById('uploadFytBtn');
-
-  const clearFytBtn =
-    document.getElementById('clearFytBtn');
-
-  const fytMsg =
-    document.getElementById('fytMsg');
-
-  const fytStatus =
-    document.getElementById('fytStatus');
-
-
-  // =====================================================
-  // LOG FUNCTION
-  // =====================================================
+  socket.on('connect', () => addLog('Dashboard connected', 'ok'));
+  socket.on('log', d => addLog(d.message, d.message.includes('ERROR') ? 'err' : ''));
+  socket.on('botlog', msg => {
+    addLog(msg, msg.includes('ERROR') ? 'err' : '');
+    if (msg.includes('Bot logged in')) {
+      statusEl.textContent = 'Running';
+      statusEl.className = 'status on';
+    }
+  });
+  socket.on('status', d => {
+    if (d.running) { statusEl.textContent = 'Running'; statusEl.className = 'status on'; }
+    if (d.botID && !botIDInput.value) botIDInput.value = d.botID;
+  });
+  socket.on('bot-stopped', () => {
+    statusEl.textContent = 'Stopped';
+    statusEl.className = 'status off';
+  });
 
   function addLog(text, cls='') {
-
-    const d =
-      document.createElement('div');
-
-    if (cls === 'err') {
-      d.classList.add('log-err');
-    }
-
-    if (cls === 'ok') {
-      d.classList.add('log-ok');
-    }
-
+    const d = document.createElement('div');
+    if (cls === 'err') d.classList.add('log-err');
+    if (cls === 'ok') d.classList.add('log-ok');
     d.textContent = text;
-
     logEl.appendChild(d);
-
-    logEl.scrollTop =
-      logEl.scrollHeight;
+    logEl.scrollTop = logEl.scrollHeight;
   }
 
-
-  // =====================================================
-  // SOCKET.IO
-  // =====================================================
-
-  socket.on('connect', () => {
-
-    addLog(
-      'Dashboard connected',
-      'ok'
-    );
-
+  fileDrop.addEventListener('click', () => fileInput.click());
+  fileDrop.addEventListener('dragover', e => { e.preventDefault(); fileDrop.classList.add('drag'); });
+  fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('drag'));
+  fileDrop.addEventListener('drop', e => {
+    e.preventDefault();
+    fileDrop.classList.remove('drag');
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
   });
-
-
-  socket.on('disconnect', () => {
-
-    addLog(
-      'Dashboard disconnected',
-      'err'
-    );
-
+  fileInput.addEventListener('change', e => {
+    if (e.target.files.length) handleFile(e.target.files[0]);
   });
-
-
-  socket.on('botlog', msg => {
-
-    addLog(
-      msg,
-      msg.includes('ERROR')
-        ? 'err'
-        : ''
-    );
-
-    if (
-      msg.includes('Bot logged in') ||
-      msg.includes('Bot ready') ||
-      msg.includes('logged in successfully')
-    ) {
-
-      statusEl.textContent =
-        'Running';
-
-      statusEl.className =
-        'status on';
-
-    }
-
-    if (
-      msg.includes('Bot stopped')
-    ) {
-
-      statusEl.textContent =
-        'Stopped';
-
-      statusEl.className =
-        'status off';
-
-    }
-
-  });
-
-
-  socket.on('bot-ready', data => {
-
-    if (
-      data &&
-      data.botID
-    ) {
-
-      if (!botIDInput.value) {
-
-        botIDInput.value =
-          data.botID;
-
-      }
-
-      addLog(
-        'Bot ID detected: ' +
-        data.botID,
-        'ok'
-      );
-
-      statusEl.textContent =
-        'Running';
-
-      statusEl.className =
-        'status on';
-
-    }
-
-  });
-
-
-  socket.on('bot-stopped', () => {
-
-    statusEl.textContent =
-      'Stopped';
-
-    statusEl.className =
-      'status off';
-
-    addLog(
-      'Bot stopped.',
-      'err'
-    );
-
-  });
-
-
-  // =====================================================
-  // LOGIN MODE
-  // =====================================================
-
-  document
-    .querySelectorAll('input[name=mode]')
-    .forEach(r => {
-
-      r.addEventListener(
-        'change',
-        () => {
-
-          const mode =
-            document
-              .querySelector(
-                'input[name=mode]:checked'
-              )
-              .value;
-
-          if (mode === 'c3c') {
-
-            c3cSection.style.display =
-              '';
-
-            rawSection.style.display =
-              'none';
-
-          } else {
-
-            c3cSection.style.display =
-              'none';
-
-            rawSection.style.display =
-              '';
-
-          }
-
-        }
-      );
-
-    });
-
-
-  // =====================================================
-  // C3C FILE UPLOAD / READ
-  // =====================================================
-
-  fileDrop.addEventListener(
-    'click',
-    () => fileInput.click()
-  );
-
-
-  fileDrop.addEventListener(
-    'dragover',
-    e => {
-
-      e.preventDefault();
-
-      fileDrop.classList.add(
-        'drag'
-      );
-
-    }
-  );
-
-
-  fileDrop.addEventListener(
-    'dragleave',
-    () => {
-
-      fileDrop.classList.remove(
-        'drag'
-      );
-
-    }
-  );
-
-
-  fileDrop.addEventListener(
-    'drop',
-    e => {
-
-      e.preventDefault();
-
-      fileDrop.classList.remove(
-        'drag'
-      );
-
-      if (
-        e.dataTransfer.files.length
-      ) {
-
-        handleFile(
-          e.dataTransfer.files[0]
-        );
-
-      }
-
-    }
-  );
-
-
-  fileInput.addEventListener(
-    'change',
-    e => {
-
-      if (
-        e.target.files.length
-      ) {
-
-        handleFile(
-          e.target.files[0]
-        );
-
-      }
-
-    }
-  );
-
 
   function handleFile(file) {
-
-    const reader =
-      new FileReader();
-
-    reader.onload = ev => {
-
-      const text =
-        ev.target.result;
-
-      cookiesTA.value =
-        text;
-
-      fileName.textContent =
-        '✅ Loaded: ' +
-        file.name +
-        ' (' +
-        text.length +
-        ' chars)';
-
-      addLog(
-        'File loaded: ' +
-        file.name,
-        'ok'
-      );
-
+    const r = new FileReader();
+    r.onload = ev => {
+      cookiesTA.value = ev.target.result;
+      fileName.textContent = '✅ ' + file.name;
+      addLog('Loaded: ' + file.name, 'ok');
     };
-
-
-    reader.onerror = () => {
-
-      addLog(
-        'File read error',
-        'err'
-      );
-
-    };
-
-
-    reader.readAsText(file);
-
+    r.readAsText(file);
   }
 
-
-  // =====================================================
-  // START BOT
-  // =====================================================
-
-  document
-    .getElementById('startBtn')
-    .addEventListener(
-      'click',
-      async () => {
-
-        const adminID =
-          document
-            .getElementById('adminID')
-            .value
-            .trim();
-
-        const botIDval =
-          botIDInput.value.trim();
-
-        const prefix =
-          document
-            .querySelector(
-              'input[name=pfx]:checked'
-            )
-            .value;
-
-        const mode =
-          document
-            .querySelector(
-              'input[name=mode]:checked'
-            )
-            .value;
-
-
-        if (!adminID) {
-
-          alert(
-            'Admin ID daalo!'
-          );
-
-          return;
-
-        }
-
-
-        let payload = {
-
-          adminID,
-
-          prefix,
-
-          botID:
-            botIDval || null,
-
-          mode
-
-        };
-
-
-        // C3C MODE
-
-        if (mode === 'c3c') {
-
-          const raw =
-            cookiesTA.value.trim();
-
-          if (!raw) {
-
-            alert(
-              'C3C paste karo ya file upload karo!'
-            );
-
-            return;
-
-          }
-
-
-          let arr;
-
-          try {
-
-            arr =
-              JSON.parse(raw);
-
-          } catch (e) {
-
-            alert(
-              'C3C JSON galat hai: ' +
-              e.message
-            );
-
-            return;
-
-          }
-
-
-          if (
-            !Array.isArray(arr) ||
-            arr.length === 0
-          ) {
-
-            alert(
-              'C3C array empty hai!'
-            );
-
-            return;
-
-          }
-
-
-          payload.cookies =
-            arr;
-
-        }
-
-
-        // RAW COOKIE MODE
-
-        else {
-
-          const raw =
-            rawTA.value.trim();
-
-          if (!raw) {
-
-            alert(
-              'Cookies string paste karo!'
-            );
-
-            return;
-
-          }
-
-          payload.cookieString =
-            raw;
-
-        }
-
-
-        msgEl.textContent =
-          '⏳ Sending config...';
-
-
-        try {
-
-          const res =
-            await fetch(
-              '/configure',
-              {
-                method:'POST',
-
-                headers:{
-                  'Content-Type':
-                    'application/json'
-                },
-
-                body:
-                  JSON.stringify(
-                    payload
-                  )
-
-              }
-            );
-
-
-          const text =
-            await res.text();
-
-
-          msgEl.textContent =
-            text;
-
-
-          addLog(
-            '→ ' + text,
-            'ok'
-          );
-
-
-        } catch (e) {
-
-          msgEl.textContent =
-            'Error: ' +
-            e.message;
-
-
-          addLog(
-            'Config error: ' +
-            e.message,
-            'err'
-          );
-
-        }
-
-      }
-    );
-
-
-  // =====================================================
-  // STOP BOT
-  // =====================================================
-
-  document
-    .getElementById('stopBtn')
-    .addEventListener(
-      'click',
-      async () => {
-
-        if (
-          !confirm(
-            'Bot band karna hai?'
-          )
-        ) {
-
-          return;
-
-        }
-
-
-        msgEl.textContent =
-          '⏳ Stopping...';
-
-
-        try {
-
-          const res =
-            await fetch(
-              '/stop',
-              {
-                method:'POST'
-              }
-            );
-
-
-          const text =
-            await res.text();
-
-
-          msgEl.textContent =
-            text;
-
-
-          addLog(
-            '→ ' + text,
-            'ok'
-          );
-
-
-          statusEl.textContent =
-            'Stopped';
-
-          statusEl.className =
-            'status off';
-
-
-        } catch (e) {
-
-          msgEl.textContent =
-            'Stop error: ' +
-            e.message;
-
-
-          addLog(
-            'Stop error: ' +
-            e.message,
-            'err'
-          );
-
-        }
-
-      }
-    );
-
-
-  // =====================================================
-  // FYT FILE SELECT
-  // =====================================================
-
-  fytDrop.addEventListener(
-    'click',
-    () => {
-
-      fytFile.click();
-
-    }
-  );
-
-
-  fytDrop.addEventListener(
-    'dragover',
-    e => {
-
-      e.preventDefault();
-
-      fytDrop.classList.add(
-        'drag'
-      );
-
-    }
-  );
-
-
-  fytDrop.addEventListener(
-    'dragleave',
-    () => {
-
-      fytDrop.classList.remove(
-        'drag'
-      );
-
-    }
-  );
-
-
-  fytDrop.addEventListener(
-    'drop',
-    e => {
-
-      e.preventDefault();
-
-      fytDrop.classList.remove(
-        'drag'
-      );
-
-
-      if (
-        e.dataTransfer.files.length
-      ) {
-
-        setFytFile(
-          e.dataTransfer.files[0]
-        );
-
-      }
-
-    }
-  );
-
-
-  fytFile.addEventListener(
-    'change',
-    e => {
-
-      if (
-        e.target.files.length
-      ) {
-
-        setFytFile(
-          e.target.files[0]
-        );
-
-      }
-
-    }
-  );
-
-
-  function setFytFile(file) {
-
-    if (
-      !file.name
-        .toLowerCase()
-        .endsWith('.txt')
-    ) {
-
-      fytMsg.textContent =
-        '❌ Sirf .txt file allowed hai';
-
-      fytStatus.textContent =
-        'Error';
-
-      fytStatus.className =
-        'status off';
-
-      return;
-
+  document.getElementById('startBtn').addEventListener('click', async () => {
+    const adminID = document.getElementById('adminID').value.trim();
+    const botID = botIDInput.value.trim();
+    const mode = document.querySelector('input[name=mode]:checked').value;
+    const prefix = document.querySelector('input[name=pfx]:checked').value;
+
+    if (!adminID) return alert('Admin ID daalo!');
+
+    const payload = { adminID, botID: botID || null, mode, prefix };
+
+    if (mode === 'c3c') {
+      const raw = cookiesTA.value.trim();
+      if (!raw) return alert('C3C paste karo!');
+      let arr;
+      try { arr = JSON.parse(raw); } catch(e) { return alert('JSON galat: ' + e.message); }
+      payload.cookies = arr;
+    } else {
+      const raw = rawTA.value.trim();
+      if (!raw) return alert('Cookies paste karo!');
+      payload.cookieString = raw;
     }
 
-
-    fytFileName.textContent =
-      '✅ Selected: ' +
-      file.name +
-      ' (' +
-      file.size +
-      ' bytes)';
-
-
-    fytStatus.textContent =
-      'Ready';
-
-    fytStatus.className =
-      'status on';
-
-
-    fytMsg.textContent =
-      'TXT file ready hai. Upload karo.';
-
-
-    addLog(
-      'FYT file selected: ' +
-      file.name,
-      'ok'
-    );
-
-  }
-
-
-  // =====================================================
-  // FYT UPLOAD
-  // =====================================================
-
-  uploadFytBtn.addEventListener(
-    'click',
-    async () => {
-
-      const file =
-        fytFile.files[0];
-
-
-      if (!file) {
-
-        fytMsg.textContent =
-          '❌ Pehle TXT file select karo';
-
-        return;
-
-      }
-
-
-      const interval =
-        parseInt(
-          fytInterval.value.trim(),
-          10
-        );
-
-
-      if (
-        !Number.isFinite(interval) ||
-        interval < 1
-      ) {
-
-        fytMsg.textContent =
-          '❌ Interval minimum 1 second hona chahiye';
-
-        return;
-
-      }
-
-
-      uploadFytBtn.disabled =
-        true;
-
-
-      fytMsg.textContent =
-        '⏳ FYT file upload ho rahi hai...';
-
-
-      try {
-
-        const content =
-          await file.text();
-
-
-        if (!content.trim()) {
-
-          throw new Error(
-            'TXT file empty hai'
-          );
-
-        }
-
-
-        const lines =
-          content
-            .split(/\r?\n/)
-            .map(x => x.trim())
-            .filter(Boolean);
-
-
-        if (!lines.length) {
-
-          throw new Error(
-            'TXT file me koi valid line nahi mili'
-          );
-
-        }
-
-
-        const res =
-          await fetch(
-            '/fyt-file',
-            {
-              method:'POST',
-
-              headers:{
-                'Content-Type':
-                  'application/json'
-              },
-
-              body:
-                JSON.stringify({
-
-                  filename:
-                    file.name,
-
-                  content:
-                    content,
-
-                  interval:
-                    interval
-
-                })
-
-            }
-          );
-
-
-        const text =
-          await res.text();
-
-
-        if (!res.ok) {
-
-          throw new Error(text);
-
-        }
-
-
-        fytMsg.textContent =
-          '✅ ' +
-          text;
-
-
-        fytStatus.textContent =
-          'Loaded';
-
-        fytStatus.className =
-          'status on';
-
-
-        addLog(
-          'FYT uploaded: ' +
-          file.name +
-          ' | Lines: ' +
-          lines.length +
-          ' | Interval: ' +
-          interval +
-          ' sec',
-          'ok'
-        );
-
-
-      } catch (e) {
-
-        fytMsg.textContent =
-          '❌ ' +
-          e.message;
-
-
-        fytStatus.textContent =
-          'Error';
-
-        fytStatus.className =
-          'status off';
-
-
-        addLog(
-          'FYT upload error: ' +
-          e.message,
-          'err'
-        );
-
-
-      } finally {
-
-        uploadFytBtn.disabled =
-          false;
-
-      }
-
+    msgEl.textContent = '⏳ Starting...';
+    try {
+      const res = await fetch('/configure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const t = await res.text();
+      msgEl.textContent = t;
+      addLog(t, 'ok');
+    } catch(e) {
+      msgEl.textContent = 'Error: ' + e.message;
+      addLog('Error: ' + e.message, 'err');
     }
-  );
+  });
 
-
-  // =====================================================
-  // FYT CLEAR
-  // =====================================================
-
-  clearFytBtn.addEventListener(
-    'click',
-    async () => {
-
-      if (
-        !confirm(
-          'FYT file configuration clear karna hai?'
-        )
-      ) {
-
-        return;
-
-      }
-
-
-      try {
-
-        const res =
-          await fetch(
-            '/fyt-file',
-            {
-              method:'DELETE'
-            }
-          );
-
-
-        const text =
-          await res.text();
-
-
-        if (!res.ok) {
-
-          throw new Error(text);
-
-        }
-
-
-        fytFile.value =
-          '';
-
-        fytFileName.textContent =
-          '';
-
-        fytMsg.textContent =
-          '✅ ' + text;
-
-
-        fytStatus.textContent =
-          'Not Loaded';
-
-        fytStatus.className =
-          'status off';
-
-
-        addLog(
-          'FYT configuration cleared',
-          'ok'
-        );
-
-
-      } catch (e) {
-
-        fytMsg.textContent =
-          '❌ ' +
-          e.message;
-
-
-        addLog(
-          'FYT clear error: ' +
-          e.message,
-          'err'
-        );
-
-      }
-
+  document.getElementById('stopBtn').addEventListener('click', async () => {
+    if (!confirm('Bot band karna hai?')) return;
+    msgEl.textContent = '⏳ Stopping...';
+    try {
+      const res = await fetch('/stop', { method: 'POST' });
+      const t = await res.text();
+      msgEl.textContent = 'Stopped';
+      addLog('Bot stopped', 'err');
+      statusEl.textContent = 'Stopped';
+      statusEl.className = 'status off';
+    } catch(e) {
+      msgEl.textContent = 'Error: ' + e.message;
     }
-  );
-
-
-  // =====================================================
-  // PREVENT ACCIDENTAL FORM-LIKE SUBMIT
-  // =====================================================
-
-  document.addEventListener(
-    'keydown',
-    e => {
-
-      if (
-        e.key === 'Enter' &&
-        e.target.tagName === 'INPUT'
-      ) {
-
-        e.preventDefault();
-
-      }
-
-    }
-  );
-
+  });
 </script>
-
 </body>
 </html>
