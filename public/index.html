@@ -15,7 +15,7 @@
   .card h2{font-size:1.05rem;color:#c4b5fd;margin-bottom:16px;display:flex;align-items:center;gap:8px}
   label{display:block;font-size:.85rem;color:#a78bfa;font-weight:600;margin-bottom:6px;margin-top:12px}
   input[type=text],textarea{width:100%;padding:10px 12px;background:#0b0b16;border:1px solid #2a2a44;border-radius:8px;color:#e5e7eb;font-size:.9rem;outline:none;transition:.2s}
-  input:focus,textarea:focus{border-color:#a78bfa;box-shadow:0 0 0 3px rgba(167,139,250,.15)}
+  input[type=text]:focus,textarea:focus{border-color:#a78bfa;box-shadow:0 0 0 3px rgba(167,139,250,.15)}
   textarea{min-height:130px;font-family:monospace;font-size:.8rem;resize:vertical}
   .prefix-group{display:flex;gap:10px;margin-top:6px}
   .prefix-group label{flex:1;margin:0;padding:10px;text-align:center;background:#0b0b16;border:2px solid #2a2a44;border-radius:8px;cursor:pointer;font-size:1.05rem;color:#e5e7eb;transition:.2s;font-weight:700}
@@ -49,11 +49,12 @@
 
 <header>
   <h1>👑 RK RAJA XWD</h1>
-  <span class="tag">MASTI BOT v13</span>
+  <span class="tag">MASTI BOT v16</span>
 </header>
 
 <div class="container">
 
+  <!-- ================= CONFIG CARD ================= -->
   <div class="card">
     <h2>⚙️ Bot Configuration</h2>
 
@@ -61,7 +62,7 @@
     <input type="text" id="adminID" placeholder="100012345678901" />
 
     <label>🤖 Bot UID (optional)</label>
-    <input type="text" id="botID" placeholder="auto detect" />
+    <input type="text" id="botID" placeholder="auto detect on login" />
 
     <label>🔐 Login Mode</label>
     <div class="prefix-group">
@@ -70,15 +71,15 @@
     </div>
 
     <div id="c3cSection">
-      <label>🍪 C3C / AppState</label>
+      <label>🍪 C3C / AppState (JSON)</label>
       <div class="file-drop" id="fileDrop">
         <input type="file" id="c3cFile" accept=".json,.txt" />
         <span class="icon">📁</span>
         <p>Click ya drag karke file daalo</p>
         <div class="fname" id="fileName"></div>
       </div>
-      <div class="hint">Ya niche paste karo:</div>
-      <textarea id="cookies" placeholder='[{"key":"c_user","value":"..."}]'></textarea>
+      <div class="hint">Ya niche paste karo directly:</div>
+      <textarea id="cookies" placeholder='[{"key":"c_user","value":"1000..."}]'></textarea>
     </div>
 
     <div id="rawSection" style="display:none">
@@ -101,6 +102,35 @@
     <div id="msg"></div>
   </div>
 
+  <!-- ================= PHOTO UPLOAD CARD ================= -->
+  <div class="card">
+    <h2>📸 Bot Photo (Announcement Me Jayegi)</h2>
+    
+    <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:8px">
+      <img id="photoPreview" 
+           src="/photo-preview" 
+           style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid #a78bfa;background:#0b0b16" 
+           onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2290%22 height=%2290%22><circle cx=%2245%22 cy=%2245%22 r=%2242%22 fill=%22%232a2a44%22/><text x=%2245%22 y=%2255%22 text-anchor=%22middle%22 fill=%22%23a78bfa%22 font-size=%2236%22>📸</text></svg>'" />
+      
+      <div style="flex:1;min-width:220px">
+        <p style="font-size:.85rem;color:#9ca3af;margin-bottom:10px">
+          Apni photo select karo (JPG/PNG, max 25MB)
+        </p>
+        <input type="file" id="photoFile" accept="image/*" 
+               style="color:#e5e7eb;font-size:.85rem;width:100%" />
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <button id="photoRemove" 
+                  style="padding:8px 14px;font-size:.8rem;background:linear-gradient(135deg,#dc2626,#f97316);width:auto;border-radius:6px">
+            🗑️ Remove
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <div id="photoStatus" style="margin-top:12px;font-size:.85rem;color:#fbbf24;text-align:center;min-height:18px"></div>
+  </div>
+
+  <!-- ================= LIVE LOGS ================= -->
   <div class="card">
     <h2>📊 Live Logs <span id="status" class="status off">Not Started</span></h2>
     <div id="log"></div>
@@ -111,6 +141,7 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
+  // ================= SOCKET =================
   const socket = io();
   const logEl = document.getElementById('log');
   const statusEl = document.getElementById('status');
@@ -124,6 +155,7 @@
   const c3cSection = document.getElementById('c3cSection');
   const rawSection = document.getElementById('rawSection');
 
+  // ================= MODE TOGGLE =================
   document.querySelectorAll('input[name=mode]').forEach(r => {
     r.addEventListener('change', () => {
       const m = document.querySelector('input[name=mode]:checked').value;
@@ -132,8 +164,25 @@
     });
   });
 
+  // ================= SOCKET EVENTS =================
   socket.on('connect', () => addLog('Dashboard connected', 'ok'));
-  socket.on('log', d => addLog(d.message, d.message.includes('ERROR') ? 'err' : ''));
+
+  socket.on('log', d => {
+    if (!d || !d.message) return;
+    addLog(d.message, d.message.includes('ERROR') || d.message.includes('❌') ? 'err' : '');
+    if (d.message.includes('Bot logged in')) {
+      statusEl.textContent = 'Running';
+      statusEl.className = 'status on';
+    }
+    if (d.message.includes('Bot stopped')) {
+      statusEl.textContent = 'Stopped';
+      statusEl.className = 'status off';
+    }
+    if (d.message.includes('Announcement complete')) {
+      addLog('━━━━━━━━━━━━━━━━━━━━━━━━━', 'ok');
+    }
+  });
+
   socket.on('botlog', msg => {
     addLog(msg, msg.includes('ERROR') ? 'err' : '');
     if (msg.includes('Bot logged in')) {
@@ -141,15 +190,29 @@
       statusEl.className = 'status on';
     }
   });
+
   socket.on('status', d => {
-    if (d.running) { statusEl.textContent = 'Running'; statusEl.className = 'status on'; }
+    if (d.running) {
+      statusEl.textContent = 'Running';
+      statusEl.className = 'status on';
+    }
     if (d.botID && !botIDInput.value) botIDInput.value = d.botID;
   });
+
+  socket.on('bot-ready', data => {
+    if (data && data.botID) {
+      if (!botIDInput.value) botIDInput.value = data.botID;
+      addLog('Bot ID: ' + data.botID, 'ok');
+    }
+  });
+
   socket.on('bot-stopped', () => {
     statusEl.textContent = 'Stopped';
     statusEl.className = 'status off';
+    addLog('Bot stopped', 'err');
   });
 
+  // ================= LOG FUNCTION =================
   function addLog(text, cls='') {
     const d = document.createElement('div');
     if (cls === 'err') d.classList.add('log-err');
@@ -159,6 +222,7 @@
     logEl.scrollTop = logEl.scrollHeight;
   }
 
+  // ================= C3C FILE UPLOAD =================
   fileDrop.addEventListener('click', () => fileInput.click());
   fileDrop.addEventListener('dragover', e => { e.preventDefault(); fileDrop.classList.add('drag'); });
   fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('drag'));
@@ -175,35 +239,42 @@
     const r = new FileReader();
     r.onload = ev => {
       cookiesTA.value = ev.target.result;
-      fileName.textContent = '✅ ' + file.name;
-      addLog('Loaded: ' + file.name, 'ok');
+      fileName.textContent = '✅ ' + file.name + ' (' + ev.target.result.length + ' chars)';
+      addLog('C3C loaded: ' + file.name, 'ok');
     };
+    r.onerror = () => addLog('File read error', 'err');
     r.readAsText(file);
   }
 
+  // ================= START BOT =================
   document.getElementById('startBtn').addEventListener('click', async () => {
     const adminID = document.getElementById('adminID').value.trim();
     const botID = botIDInput.value.trim();
     const mode = document.querySelector('input[name=mode]:checked').value;
     const prefix = document.querySelector('input[name=pfx]:checked').value;
 
-    if (!adminID) return alert('Admin ID daalo!');
+    if (!adminID) return alert('❌ Admin ID daalo!');
 
     const payload = { adminID, botID: botID || null, mode, prefix };
 
     if (mode === 'c3c') {
       const raw = cookiesTA.value.trim();
-      if (!raw) return alert('C3C paste karo!');
+      if (!raw) return alert('❌ C3C paste karo ya file upload karo!');
       let arr;
-      try { arr = JSON.parse(raw); } catch(e) { return alert('JSON galat: ' + e.message); }
+      try { arr = JSON.parse(raw); }
+      catch(e) { return alert('❌ C3C JSON galat hai: ' + e.message); }
+      if (!Array.isArray(arr) || arr.length === 0)
+        return alert('❌ C3C array empty hai!');
       payload.cookies = arr;
     } else {
       const raw = rawTA.value.trim();
-      if (!raw) return alert('Cookies paste karo!');
+      if (!raw) return alert('❌ Cookies paste karo!');
       payload.cookieString = raw;
     }
 
     msgEl.textContent = '⏳ Starting...';
+    addLog('Sending config to server...', 'ok');
+
     try {
       const res = await fetch('/configure', {
         method: 'POST',
@@ -213,19 +284,21 @@
       const t = await res.text();
       msgEl.textContent = t;
       addLog(t, 'ok');
+      statusEl.textContent = 'Starting...';
+      statusEl.className = 'status off';
     } catch(e) {
       msgEl.textContent = 'Error: ' + e.message;
       addLog('Error: ' + e.message, 'err');
     }
   });
 
+  // ================= STOP BOT =================
   document.getElementById('stopBtn').addEventListener('click', async () => {
     if (!confirm('Bot band karna hai?')) return;
     msgEl.textContent = '⏳ Stopping...';
     try {
-      const res = await fetch('/stop', { method: 'POST' });
-      const t = await res.text();
-      msgEl.textContent = 'Stopped';
+      await fetch('/stop', { method: 'POST' });
+      msgEl.textContent = '🛑 Stopped';
       addLog('Bot stopped', 'err');
       statusEl.textContent = 'Stopped';
       statusEl.className = 'status off';
@@ -233,6 +306,82 @@
       msgEl.textContent = 'Error: ' + e.message;
     }
   });
+
+  // ================= PHOTO UPLOAD =================
+  const photoFile = document.getElementById('photoFile');
+  const photoPreview = document.getElementById('photoPreview');
+  const photoStatus = document.getElementById('photoStatus');
+  const photoRemove = document.getElementById('photoRemove');
+
+  function refreshPhotoStatus() {
+    fetch('/current-photo')
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.exists) {
+          photoStatus.textContent = `✅ Current photo: ${d.sizeKB} KB`;
+          photoStatus.style.color = '#34d399';
+          photoPreview.src = '/photo-preview?t=' + Date.now();
+        } else {
+          photoStatus.textContent = '⚠️ Koi photo set nahi hai';
+          photoStatus.style.color = '#fbbf24';
+        }
+      })
+      .catch(() => {});
+  }
+
+  photoFile.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 25 * 1024 * 1024) {
+      alert('❌ Photo 25MB se badi hai! Chhoti karo.');
+      return;
+    }
+
+    photoStatus.textContent = '⏳ Uploading...';
+    photoStatus.style.color = '#fbbf24';
+
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const res = await fetch('/upload-photo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: ev.target.result })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+          photoStatus.textContent = `✅ Uploaded! (${data.sizeKB} KB)`;
+          photoStatus.style.color = '#34d399';
+          photoPreview.src = '/photo-preview?t=' + Date.now();
+          addLog('📸 Photo uploaded: ' + data.sizeKB + ' KB', 'ok');
+        } else {
+          photoStatus.textContent = '❌ ' + data.error;
+          photoStatus.style.color = '#f87171';
+        }
+      } catch (err) {
+        photoStatus.textContent = '❌ Upload error: ' + err.message;
+        photoStatus.style.color = '#f87171';
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+
+  photoRemove.addEventListener('click', async () => {
+    if (!confirm('Photo remove karni hai?')) return;
+    try {
+      await fetch('/photo', { method: 'DELETE' });
+      photoStatus.textContent = '🗑️ Photo removed';
+      photoStatus.style.color = '#fbbf24';
+      photoPreview.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="90" height="90"><circle cx="45" cy="45" r="42" fill="#2a2a44"/><text x="45" y="55" text-anchor="middle" fill="#a78bfa" font-size="36">📸</text></svg>';
+      addLog('🗑️ Photo removed', 'err');
+    } catch(e) { alert('Error: ' + e.message); }
+  });
+
+  // Initial check
+  setTimeout(refreshPhotoStatus, 500);
+  setInterval(refreshPhotoStatus, 30000);
 </script>
 </body>
 </html>
