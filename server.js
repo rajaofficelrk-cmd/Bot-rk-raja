@@ -1,6 +1,5 @@
 // ============================================================
-// RK RAJA XWD BOT v15 — FULL WORKING
-// Auto Announce + Human Chat + Welcome + Locks + FYT + Music
+// RK RAJA XWD BOT v16 — FULL + PHOTO UPLOAD
 // ============================================================
 
 const express = require("express");
@@ -28,14 +27,14 @@ loadFCA();
 // ================= REPLIES =================
 let R = null;
 try { R = require("./replies"); console.log("✅ replies.js loaded"); }
-catch(e) { console.log("⚠️ replies.js nahi mila - built-in use hoga"); }
+catch(e) { console.log("⚠️ replies.js nahi mila"); }
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(bodyParser.json({ limit: "20mb" }));
-app.use(bodyParser.urlencoded({ extended: true, limit: "20mb" }));
+app.use(bodyParser.json({ limit: "25mb" }));
+app.use(bodyParser.urlencoded({ extended: true, limit: "25mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 // ================= CONFIG =================
@@ -96,12 +95,27 @@ function log(msg) {
   io.emit("log", { message: line });
 }
 
-function cleanID(id) { return id == null ? null : String(id); }
+function cleanID(id) {
+  if (id == null) return null;
+  return ('' + id).trim();
+}
 function isAdmin(uid) { return cleanID(uid) === cleanID(state.adminID); }
 
+// ================= PHOTO HELPERS =================
 function createPhotoAttachment() {
-  if (!fs.existsSync(BOT_DP_PATH)) return null;
-  return fs.createReadStream(BOT_DP_PATH);
+  try {
+    if (!fs.existsSync(BOT_DP_PATH)) return null;
+    const stat = fs.statSync(BOT_DP_PATH);
+    if (stat.size === 0) return null;
+    if (stat.size > 25 * 1024 * 1024) {
+      log(`⚠️ Photo 25MB se badi hai!`);
+      return null;
+    }
+    return fs.createReadStream(BOT_DP_PATH);
+  } catch(e) {
+    log(`Photo err: ${e.message}`);
+    return null;
+  }
 }
 
 // ================= SEND HELPERS =================
@@ -113,21 +127,46 @@ function sendMessageSafe(api, message, threadID, replyTo = null) {
       if (err) reject(err); else resolve(info);
     };
     try {
-      const tid = cleanID(threadID);
-      if (!tid) return finish(new Error("Invalid threadID"));
-      const r = replyTo
-        ? api.sendMessage(message, tid, finish, cleanID(replyTo))
-        : api.sendMessage(message, tid, finish);
-      if (r && typeof r.then === "function") r.then(i => finish(null, i)).catch(finish);
+      const tid = '' + cleanID(threadID);
+      if (!tid || tid === 'null' || tid === 'undefined') {
+        return finish(new Error("Invalid threadID"));
+      }
+      // Reply-to remove kiya (MessageID error fix)
+      let result;
+      try {
+        result = api.sendMessage(message, tid, finish);
+      } catch (inner) {
+        // Fallback: agar object fail ho toh plain text try karo
+        if (typeof message === 'object' && message.body) {
+          try {
+            result = api.sendMessage(message.body, tid, finish);
+          } catch (e2) {
+            return finish(e2);
+          }
+        } else {
+          return finish(inner);
+        }
+      }
+      if (result && typeof result.then === "function") {
+        result.then(i => finish(null, i)).catch(finish);
+      }
     } catch (e) { finish(e); }
   });
 }
 
-async function sendPhotoMessageSafe(api, threadID, text, replyTo = null) {
+async function sendPhotoMessageSafe(api, threadID, text) {
   const tid = cleanID(threadID);
   const att = createPhotoAttachment();
-  const msg = att ? { body: text, attachment: att } : text;
-  return sendMessageSafe(api, msg, tid, replyTo);
+  if (att) {
+    try {
+      return await sendMessageSafe(api, { body: text, attachment: att }, tid);
+    } catch(e) {
+      log(`Photo send err: ${e.message}, text-only fallback`);
+      return sendMessageSafe(api, text, tid);
+    }
+  }
+  // Photo nahi hai toh plain text
+  return sendMessageSafe(api, text, tid);
 }
 
 function getUserInfoSafe(api, uid) {
@@ -203,9 +242,7 @@ function unsendSafe(api, mid) {
   try { if (api && typeof api.unsendMessage === "function") api.unsendMessage(cleanID(mid), () => {}); } catch(_) {}
 }
 
-// ============================================================
-// ================= STARTUP MESSAGE ==========================
-// ============================================================
+// ================= STARTUP MESSAGE =================
 const LIVE_MESSAGE =
 `╔═══════════════════════════════╗
 ║  🤍🩷 𝐑𝐊 𝐑𝐀𝐉𝐀 𝐗𝐖𝐃 🩷🤍  ║
@@ -244,37 +281,27 @@ ${BOT_NAME}
 🤍🩷 𝐑𝐊 𝐑𝐀𝐉𝐀 𝐗𝐖𝐃 🤍🩷
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
-// ================= FALLBACK REPLIES (agar replies.js na ho) =================
+// ================= FALLBACK REPLIES =================
 const FB_SHAYARI = [
   "Tere bina zindagi adhoori si lagti hai,\nTere saath har khushi poori si lagti hai 💕",
   "Chand bhi sharma jaye teri chamak se,\nTaare bhi jal jaye teri ek jhalak se 🌙✨",
-  "Dil ki gehraiyon me tera naam likha hai,\nHar dhadkan pe tera hi paigam likha hai ❤️",
-  "Meri subah tu, meri shaam tu,\nMeri har dua me sirf tera naam tu 🌸",
   "Tu meri subah ki pehli soch hai,\nTu meri raat ki aakhri khwahish hai 🌄"
 ];
 const FB_JOKES = [
   "Teacher: Homework kaha hai? Me: Sir network issue tha 📶😂",
-  "Mobile: 20% battery. Me: 20 minute aur. Mobile: 1%. Me: 5 minute aur 😂",
-  "Wife: tum mujhe kitna pyaar karte ho? Husband: GPS se zyada accurate 😂"
+  "Mobile: 20% battery. Me: 20 minute aur. Mobile: 1%. Me: 5 minute aur 😂"
 ];
 const FB_FLIRT = [
   "Arre babu 😍 tumse pyaar to hume bhi hai, par pehle level badhao 😏",
-  "Sona 💋 tumhari baatein sunke dil pighal jata hai 🫠",
-  "Oye jaan 🥰 itna pyaar kaha chhupa rahe the ab tak? 💕"
+  "Sona 💋 tumhari baatein sunke dil pighal jata hai 🫠"
 ];
 const FB_AUTO = {
-  hi: ["Hii jaan 💕","Hello babu 🥰","Hii sona 😘","Heyy cutie 💗"],
-  hello: ["Hello babu 🥰","Hello ji 💕","Hello sona 😘"],
-  hii: ["Hiiii jaan 💕🥰","Hiiii babu 😍"],
-  hey: ["Heyy babu 🥰","Hey jaan 💕"],
-  "kese ho": ["Mai mast hu babu 💕 tum batao?","First class 😎 tum sunao"],
-  "kaise ho": ["Mai badhiya hu jaan 😊","Mast hu babu 💕"],
-  "i love you": ["I love you too jaan 💝","Aww babu 🥰 mai bhi"],
-  "love you": ["Love you too jaan 💝","Aww 🥰 mujhe bhi"],
-  kiss: ["Muaaah 😘💋","Smooch 💕😘","Aww babu 😘"],
+  hi: ["Hii jaan 💕","Hello babu 🥰","Hii sona 😘"],
+  hello: ["Hello babu 🥰","Hello ji 💕"],
+  kiss: ["Muaaah 😘💋","Smooch 💕😘"],
   hug: ["Big hug 🤗💕","Aao jhappi 🫂😘"],
-  "good morning": ["Good morning jaan ☀️","GM babu 🌅 khana khaya?"],
-  "good night": ["Good night jaan 🌙","GN babu 😴 meetha sapna"],
+  "good morning": ["Good morning jaan ☀️","GM babu 🌅"],
+  "good night": ["Good night jaan 🌙","GN babu 😴"],
   babu: ["Haan babu 💕 bolo","Kya hua babu 🥰"],
   sona: ["Haan sona 💗 bolo","Kya hua sona 🥰"],
   jaan: ["Haan jaan 💕 bolo","Kya hua jaanu 🥰"]
@@ -289,9 +316,7 @@ function getAutoReply(text) {
   const n = normalizeText(text);
   if (!n) return null;
   if (FB_AUTO[n]) return fbRand(FB_AUTO[n]);
-  for (const k of Object.keys(FB_AUTO)) {
-    if (n.includes(k)) return fbRand(FB_AUTO[k]);
-  }
+  for (const k of Object.keys(FB_AUTO)) if (n.includes(k)) return fbRand(FB_AUTO[k]);
   return null;
 }
 function getWelcomeShayari() {
@@ -312,9 +337,9 @@ async function announceBotOnline(api) {
     if (exists) {
       const s = fs.statSync(BOT_DP_PATH);
       log(`   Size: ${(s.size / 1024).toFixed(2)} KB`);
-      if (s.size > 2 * 1024 * 1024) log("   ⚠️ File 2MB se badi hai!");
     } else {
-      log("   ❌ File nahi mili! media/rk-raja-xwd.jpg daalo.");
+      log("   ⚠️ File nahi hai — bina photo ke jayega");
+      log("   👉 Dashboard se photo upload karo");
     }
     log("━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
@@ -347,16 +372,14 @@ async function announceBotOnline(api) {
       const tid = groups[i];
       try {
         log(`  📤 [${i+1}/${groups.length}] → ${tid}`);
-
         const nickOk = await changeNicknameSafe(api, BOT_NAME, tid, state.botID);
-        log(`     Nickname: ${nickOk ? "✅ set" : "⚠️ fail (bot admin banao)"}`);
-
+        log(`     Nickname: ${nickOk ? "✅ set" : "⚠️ fail (admin banao)"}`);
         await sendPhotoMessageSafe(api, tid, LIVE_MESSAGE);
-        log(`  ✅ Sent to ${tid}`);
+        log(`  ✅ Sent`);
       } catch (e) { log(`  ❌ Failed ${tid}: ${e.message}`); }
       await new Promise(r => setTimeout(r, 2000));
     }
-    log("🎉 Announcement complete — sabhi groups me message gaya.");
+    log("🎉 Announcement complete");
     log("━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   } catch (e) { log(`Announce err: ${e.message}`); }
 }
@@ -386,7 +409,7 @@ async function getGroupName(api, tid) {
 }
 
 // ================= UID CARD =================
-async function sendUIDCard(api, tid, uid, replyTo = null) {
+async function sendUIDCard(api, tid, uid) {
   uid = cleanID(uid);
   const name = await getDisplayName(api, uid);
   const u = state.levels[uid] || { xp: 0, level: 1 };
@@ -403,23 +426,20 @@ ${BOT_NAME}
 ⚡ 𝐗𝐏 : ${u.xp}
 
 📲 𝐉𝐨𝐢𝐧𝐞 𝐦𝐲 𝐆𝐂 𝐓𝐆 ❤️
-${TELEGRAM_LINK}
-
-🤍🩷 RK RAJA XWD 🤍🩷`;
+${TELEGRAM_LINK}`;
   const att = createPhotoAttachment();
   const msg = att ? { body: text, attachment: att } : text;
-  return sendMessageSafe(api, msg, tid, replyTo);
+  return sendMessageSafe(api, msg, tid);
 }
 
 // ================= CUTE DP =================
-async function sendCuteDP(api, tid, uid, replyTo = null) {
+async function sendCuteDP(api, tid, uid) {
   uid = cleanID(uid);
   const name = await getDisplayName(api, uid);
   const u = addXP(uid, 10);
   const rem = Math.max(0, xpForNext(u.level) - u.xp);
   const shayari = getShayari();
-  const stickers = ["🥰","😍","💕","💖","✨","🌸","💘","😘"];
-  const emoji = stickers[Math.floor(Math.random() * stickers.length)];
+  const emoji = fbRand(["🥰","😍","💕","💖","✨","🌸","💘","😘"]);
   const text =
 `${emoji} @${name} ${emoji}
 
@@ -440,11 +460,11 @@ ${shayari}
   } catch(_) {}
   const msg = { body: text, mentions: [{ tag: `@${name}`, id: uid }] };
   if (dpUrl) msg.attachment = dpUrl;
-  return sendMessageSafe(api, msg, tid, replyTo);
+  return sendMessageSafe(api, msg, tid);
 }
 
 // ================= WELCOME =================
-async function sendWelcomeMessage(api, tid, targetUID, replyTo = null) {
+async function sendWelcomeMessage(api, tid, targetUID) {
   targetUID = cleanID(targetUID);
   if (!targetUID) return;
   let name = "User", profileUrl = `https://www.facebook.com/${targetUID}`, dpUrl = null, bio = "";
@@ -483,16 +503,12 @@ ${shayari}
 ⚡ 𝐗𝐏 : ${u.xp}
 
 📲 𝐉𝐨𝐢𝐧𝐞 𝐦𝐲 𝐆𝐂 𝐓𝐆 ❤️
-${TELEGRAM_LINK}
-
-❥ RK RAJA XWD ❥`;
+${TELEGRAM_LINK}`;
   const msg = { body: text, mentions: [{ tag: `@${name}`, id: targetUID }] };
   if (dpUrl) msg.attachment = dpUrl;
   else { const att = createPhotoAttachment(); if (att) msg.attachment = att; }
-  try {
-    await sendMessageSafe(api, msg, tid, replyTo);
-    log(`👋 Welcome sent to ${name} (${targetUID})`);
-  } catch (e) { log(`Welcome err: ${e.message}`); }
+  try { await sendMessageSafe(api, msg, tid); log(`👋 Welcome sent to ${name}`); }
+  catch (e) { log(`Welcome err: ${e.message}`); }
 }
 
 // ================= HELP =================
@@ -506,7 +522,7 @@ dp, uid, couple, welcome
 music <song>, song <song>
 cute, level, xp, rank
 status, bot, rules, help
-welcome @user  (welcome karo)
+welcome @user
 
 🔐 ADMIN COMMANDS
 lockname on <name> / off
@@ -546,7 +562,7 @@ async function startFyt(api, tid) {
   tid = cleanID(tid);
   const lines = readFYTLines();
   if (!lines.length) {
-    await sendMessageSafe(api, "❌ FYT file empty hai. Admin pehle file upload kare.", tid);
+    await sendMessageSafe(api, "❌ FYT file empty hai.", tid);
     return;
   }
   stopFyt(tid);
@@ -564,7 +580,7 @@ async function startFyt(api, tid) {
   };
   await sendNext();
   state.fyt[tid].timer = setInterval(sendNext, interval);
-  await sendMessageSafe(api, `✅ FYT ON — ${lines.length} lines, har ${interval/1000}s loop 🔁`, tid);
+  await sendMessageSafe(api, `✅ FYT ON — ${lines.length} lines, ${interval/1000}s loop 🔁`, tid);
 }
 
 function loadUploadedFYT(name) {
@@ -619,12 +635,12 @@ async function handleMessageLock(api, event) {
   const key = `${tid}:${event.senderID}`;
   state.spam[key] = (state.spam[key] || 0) + 1;
   if (state.spam[key] === 1) {
-    try { await sendMessageSafe(api, "🔒 Message Lock ON — Group me sirf admin message kar sakta hai!", tid); } catch(_){}
+    try { await sendMessageSafe(api, "🔒 Message Lock ON", tid); } catch(_){}
   }
   if (state.spam[key] >= KICK_LIMIT) {
     state.spam[key] = 0;
     await removeUserSafe(api, event.senderID, tid);
-    try { await sendMessageSafe(api, "🚫 User kicked (msg lock violation).", tid); } catch(_){}
+    try { await sendMessageSafe(api, "🚫 User kicked (msg lock).", tid); } catch(_){}
   }
   return true;
 }
@@ -640,20 +656,19 @@ async function handleSpamLock(api, event) {
   const key = `${tid}:${event.senderID}`;
   state.spam[key] = (state.spam[key] || 0) + 1;
   if (state.spam[key] === 1) {
-    try { await sendMessageSafe(api, "🚫 Sticker/Photo spam allowed nahi hai!", tid); } catch(_){}
+    try { await sendMessageSafe(api, "🚫 Spam allowed nahi!", tid); } catch(_){}
   }
   if (state.spam[key] >= KICK_LIMIT) {
     state.spam[key] = 0;
     await removeUserSafe(api, event.senderID, tid);
-    try { await sendMessageSafe(api, "🚫 User kicked (spam).", tid); } catch(_){}
   }
   return true;
 }
 
 // ================= MUSIC =================
-async function sendMusic(api, tid, query, replyTo = null) {
+async function sendMusic(api, tid, query) {
   query = String(query || "").trim();
-  if (!query) return sendMessageSafe(api, "🎵 Use: music <song name>", tid, replyTo);
+  if (!query) return sendMessageSafe(api, "🎵 Use: music <song name>", tid);
   const q = encodeURIComponent(query);
   const text =
 `🎵 𝐒𝐎𝐍𝐆 𝐒𝐄𝐀𝐑𝐂𝐇 🎵
@@ -664,9 +679,8 @@ async function sendMusic(api, tid, query, replyTo = null) {
 🔗 Spotify: https://open.spotify.com/search/${q}
 🔗 JioSaavn: https://www.jiosaavn.com/search/${q}
 
-📲 ${TELEGRAM_LINK}
-❥ RK RAJA XWD ❥`;
-  return sendMessageSafe(api, text, tid, replyTo);
+📲 ${TELEGRAM_LINK}`;
+  return sendMessageSafe(api, text, tid);
 }
 
 // ================= COMMANDS =================
@@ -706,7 +720,7 @@ async function handleAdminCommand(api, event, command, args) {
   const tid = cleanID(event.threadID);
   const sender = cleanID(event.senderID);
   if (!isAdmin(sender)) {
-    await sendMessageSafe(api, "⛔ Ye command sirf ADMIN use kar sakta hai 🔒", tid, event.messageID);
+    await sendMessageSafe(api, "⛔ Sirf ADMIN use kar sakta hai 🔒", tid);
     return true;
   }
   state.stats.commands++;
@@ -714,38 +728,29 @@ async function handleAdminCommand(api, event, command, args) {
   if (command === "lockname") {
     const m = args.match(/^(on|off)(?:\s+(.+))?$/i);
     if (!m) { await sendMessageSafe(api, `Usage: ${state.prefix}lockname on <name>`, tid); return true; }
-    if (m[1].toLowerCase() === "off") {
-      delete state.locks.groupNames[tid];
-      await sendMessageSafe(api, "🔓 Group Name Unlocked", tid);
-      return true;
-    }
+    if (m[1].toLowerCase() === "off") { delete state.locks.groupNames[tid]; await sendMessageSafe(api, "🔓 Name Unlocked", tid); return true; }
     const name = (m[2] || "RK RAJA XWD").trim();
     const ok = await setTitleSafe(api, name, tid);
     state.locks.groupNames[tid] = { name };
-    await sendMessageSafe(api, `🔒 Group Name Locked: "${name}" ${ok ? "✅" : "(bot admin banao!)"}`, tid);
+    await sendMessageSafe(api, `🔒 Name Locked: "${name}" ${ok ? "✅" : "⚠️"}` , tid);
     return true;
   }
 
   if (command === "locknick") {
     const m = args.match(/^(on|off)(?:\s+(.+))?$/i);
     if (!m) { await sendMessageSafe(api, `Usage: ${state.prefix}locknick on <nick>`, tid); return true; }
-    if (m[1].toLowerCase() === "off") {
-      delete state.locks.nicknames[tid];
-      await sendMessageSafe(api, "🔓 Nickname Unlocked", tid);
-      return true;
-    }
+    if (m[1].toLowerCase() === "off") { delete state.locks.nicknames[tid]; await sendMessageSafe(api, "🔓 Nick Unlocked", tid); return true; }
     const nick = (m[2] || "RK RAJA").trim();
     state.locks.nicknames[tid] = { nickname: nick };
     const done = await applyNicknameLock(api, tid);
-    await sendMessageSafe(api, `🔒 Nickname Locked: "${nick}"\n✅ ${done || 0} members updated`, tid);
+    await sendMessageSafe(api, `🔒 Nick Locked: "${nick}"\n✅ ${done || 0} updated`, tid);
     return true;
   }
 
   if (command === "msglock") {
     const sub = normalizeText(args);
-    if (sub === "on") { state.locks.messageLock[tid] = true; await sendMessageSafe(api, "🔒 Message Lock ON", tid); return true; }
-    if (sub === "off") { delete state.locks.messageLock[tid]; await sendMessageSafe(api, "🔓 Message Lock OFF", tid); return true; }
-    await sendMessageSafe(api, `Usage: ${state.prefix}msglock on/off`, tid);
+    if (sub === "on") { state.locks.messageLock[tid] = true; await sendMessageSafe(api, "🔒 Msg Lock ON", tid); return true; }
+    if (sub === "off") { delete state.locks.messageLock[tid]; await sendMessageSafe(api, "🔓 Msg Lock OFF", tid); return true; }
     return true;
   }
 
@@ -753,7 +758,6 @@ async function handleAdminCommand(api, event, command, args) {
     const sub = normalizeText(args);
     if (sub === "on") { state.locks.spamLock[tid] = true; await sendMessageSafe(api, "🔒 Spam Lock ON", tid); return true; }
     if (sub === "off") { delete state.locks.spamLock[tid]; await sendMessageSafe(api, "🔓 Spam Lock OFF", tid); return true; }
-    await sendMessageSafe(api, `Usage: ${state.prefix}spamlock on/off`, tid);
     return true;
   }
 
@@ -763,7 +767,7 @@ async function handleAdminCommand(api, event, command, args) {
     delete state.locks.messageLock[tid];
     delete state.locks.spamLock[tid];
     stopFyt(tid);
-    await sendMessageSafe(api, "🔓 Sab locks unlock ho gaye!", tid);
+    await sendMessageSafe(api, "🔓 Sab unlock", tid);
     return true;
   }
 
@@ -774,19 +778,19 @@ async function handleAdminCommand(api, event, command, args) {
     delete state.locks.spamLock[tid];
     stopFyt(tid);
     state.spam = {};
-    await sendMessageSafe(api, "♻️ Group reset ho gaya.", tid);
+    await sendMessageSafe(api, "♻️ Reset", tid);
     return true;
   }
 
   if (command === "stats") {
     const up = state.stats.startedAt ? Math.floor((Date.now() - state.stats.startedAt) / 1000) : 0;
     await sendMessageSafe(api,
-`🤖 RK RAJA XWD STATS
+`🤖 STATS
 🟢 Running: ${state.running}
 👤 BotID: ${state.botID}
 👑 Admin: ${state.adminID}
-💬 Messages: ${state.stats.messages}
-⚡ Commands: ${state.stats.commands}
+💬 Msg: ${state.stats.messages}
+⚡ Cmd: ${state.stats.commands}
 👥 Groups: ${state.stats.groups}
 ⏱ Uptime: ${up}s`, tid);
     return true;
@@ -801,7 +805,7 @@ async function handleAdminCommand(api, event, command, args) {
       if (!target) continue;
       try { await sendMessageSafe(api, args.trim(), target); sent++; await new Promise(r => setTimeout(r, 1000)); } catch(_){}
     }
-    await sendMessageSafe(api, `📢 Broadcast sent to ${sent} groups.`, tid);
+    await sendMessageSafe(api, `📢 Sent to ${sent} groups`, tid);
     return true;
   }
 
@@ -809,29 +813,28 @@ async function handleAdminCommand(api, event, command, args) {
     const sub = normalizeText(args);
     if (sub === "on") { await startFyt(api, tid); return true; }
     if (sub === "off") { stopFyt(tid); await sendMessageSafe(api, "⛔ FYT OFF", tid); return true; }
-    await sendMessageSafe(api, `Usage: ${state.prefix}fyt on/off`, tid);
     return true;
   }
 
   if (command === "fytfile") {
     if (!args.trim()) { await sendMessageSafe(api, "Use: fytfile <filename>", tid); return true; }
     const ok = loadUploadedFYT(args.trim());
-    await sendMessageSafe(api, ok ? "✅ FYT file loaded" : "❌ File nahi mili", tid);
+    await sendMessageSafe(api, ok ? "✅ Loaded" : "❌ File nahi mili", tid);
     return true;
   }
 
   if (command === "fytclear") {
     for (const id of Object.keys(state.fyt)) stopFyt(id);
     try { fs.writeFileSync(FYT_PATH, ""); } catch(_){}
-    await sendMessageSafe(api, "🗑️ FYT file cleared", tid);
+    await sendMessageSafe(api, "🗑️ Cleared", tid);
     return true;
   }
 
   if (command === "fytinterval") {
     const s = Number(args);
-    if (!Number.isFinite(s) || s < 5) { await sendMessageSafe(api, "❌ Min interval 5s", tid); return true; }
+    if (!Number.isFinite(s) || s < 5) { await sendMessageSafe(api, "❌ Min 5s", tid); return true; }
     state.fytInterval = s * 1000;
-    await sendMessageSafe(api, `✅ FYT interval: ${s}s`, tid);
+    await sendMessageSafe(api, `✅ Interval: ${s}s`, tid);
     return true;
   }
 
@@ -844,10 +847,7 @@ async function handleUserCommand(api, event, command, args) {
   const sender = cleanID(event.senderID);
   state.stats.commands++;
 
-  if (command === "help" || command === "menu") {
-    await sendMessageSafe(api, helpText(), tid, event.messageID);
-    return true;
-  }
+  if (command === "help" || command === "menu") { await sendMessageSafe(api, helpText(), tid); return true; }
 
   if (command === "shayari" || command === "shayri" || command === "sher") {
     const s = getShayari();
@@ -858,76 +858,54 @@ async function handleUserCommand(api, event, command, args) {
     return true;
   }
 
-  if (command === "joke" || command === "jokes" || command === "hasao") {
-    await sendMessageSafe(api, `😂 ${getJoke()}`, tid);
-    return true;
-  }
-
-  if (command === "flirt" || command === "flirting") {
-    await sendMessageSafe(api, getFlirt(), tid);
-    return true;
-  }
+  if (command === "joke" || command === "jokes" || command === "hasao") { await sendMessageSafe(api, `😂 ${getJoke()}`, tid); return true; }
+  if (command === "flirt" || command === "flirting") { await sendMessageSafe(api, getFlirt(), tid); return true; }
 
   if (command === "uid" || command === "userid" || command === "id" || command === "bot") {
     let target = sender;
     if (event.mentions && Object.keys(event.mentions).length) target = cleanID(Object.keys(event.mentions)[0]);
-    await sendUIDCard(api, tid, target, event.messageID);
+    await sendUIDCard(api, tid, target);
     return true;
   }
 
   if (command === "dp" || command === "profile" || command === "cute") {
     let target = sender;
     if (event.mentions && Object.keys(event.mentions).length) target = cleanID(Object.keys(event.mentions)[0]);
-    await sendCuteDP(api, tid, target, event.messageID);
+    await sendCuteDP(api, tid, target);
     return true;
   }
 
   if (command === "couple") {
     let target = sender;
     if (event.mentions && Object.keys(event.mentions).length) target = cleanID(Object.keys(event.mentions)[0]);
-    await sendCuteDP(api, tid, target, event.messageID);
+    await sendCuteDP(api, tid, target);
     return true;
   }
 
-  if (command === "music" || command === "song" || command === "video") {
-    await sendMusic(api, tid, args, event.messageID);
-    return true;
-  }
+  if (command === "music" || command === "song" || command === "video") { await sendMusic(api, tid, args); return true; }
 
   if (command === "welcome") {
     let target = sender;
     if (event.mentions && Object.keys(event.mentions).length) target = cleanID(Object.keys(event.mentions)[0]);
     else if (event.messageReply && event.messageReply.senderID) target = cleanID(event.messageReply.senderID);
-    await sendWelcomeMessage(api, tid, target, event.messageID);
+    await sendWelcomeMessage(api, tid, target);
     return true;
   }
 
   if (command === "status" || command === "ping") {
-    await sendMessageSafe(api,
-`🤖 RK RAJA XWD BOT
-🟢 Status: ONLINE
-⚡ Mode: ${state.mode.toUpperCase()}
-👑 Bot active hai!
-📲 ${TELEGRAM_LINK}`, tid, event.messageID);
+    await sendMessageSafe(api, `🤖 RK RAJA XWD\n🟢 ONLINE\n📲 ${TELEGRAM_LINK}`, tid);
     return true;
   }
 
   if (command === "rules") {
-    await sendMessageSafe(api,
-`🤍🩷 RK RAJA XWD RULES 🩷🤍
-1️⃣ Respect everyone
-2️⃣ No spam
-3️⃣ No abuse
-4️⃣ Admin respect
-5️⃣ Enjoy 🥰
-📲 ${TELEGRAM_LINK}`, tid);
+    await sendMessageSafe(api, `🤍🩷 RULES 🩷🤍\n1️⃣ Respect\n2️⃣ No spam\n3️⃣ No abuse\n📲 ${TELEGRAM_LINK}`, tid);
     return true;
   }
 
   if (command === "level" || command === "xp" || command === "rank") {
     let target = sender;
     if (event.mentions && Object.keys(event.mentions).length) target = cleanID(Object.keys(event.mentions)[0]);
-    await sendCuteDP(api, tid, target, event.messageID);
+    await sendCuteDP(api, tid, target);
     return true;
   }
 
@@ -942,32 +920,22 @@ async function handleMessage(api, event) {
   const sender = cleanID(event.senderID);
 
   if (state.botID && sender === cleanID(state.botID)) return;
-
   if (await handleMessageLock(api, event)) return;
   if (await handleSpamLock(api, event)) return;
 
   const text = String(event.body || "").trim();
   if (!text) return;
 
-  if (state.locks.nicknames[tid]) {
-    applyNicknameLock(api, tid).catch(() => {});
-  }
+  if (state.locks.nicknames[tid]) applyNicknameLock(api, tid).catch(() => {});
 
   const parsed = parseCommand(text);
   const called = isBotCalled(text);
 
   if (parsed) {
-    if (ADMIN_COMMANDS.has(parsed.command)) {
-      await handleAdminCommand(api, event, parsed.command, parsed.args);
-      return;
-    }
-    if (USER_COMMANDS.has(parsed.command)) {
-      await handleUserCommand(api, event, parsed.command, parsed.args);
-      return;
-    }
+    if (ADMIN_COMMANDS.has(parsed.command)) { await handleAdminCommand(api, event, parsed.command, parsed.args); return; }
+    if (USER_COMMANDS.has(parsed.command)) { await handleUserCommand(api, event, parsed.command, parsed.args); return; }
   }
 
-  // HUMAN MODE
   if (HUMAN_MODE) {
     const name = await getDisplayName(api, sender);
 
@@ -975,10 +943,8 @@ async function handleMessage(api, event) {
       const s = getShayari();
       const att = createPhotoAttachment();
       const body = `@${name} ${s}\n\n📲 ${TELEGRAM_LINK}\n❥ RK RAJA XWD ❥`;
-      const msg = att
-        ? { body, attachment: att, mentions: [{ tag: `@${name}`, id: sender }] }
-        : { body, mentions: [{ tag: `@${name}`, id: sender }] };
-      await sendMessageSafe(api, msg, tid, event.messageID);
+      const msg = att ? { body, attachment: att, mentions: [{ tag: `@${name}`, id: sender }] } : { body, mentions: [{ tag: `@${name}`, id: sender }] };
+      await sendMessageSafe(api, msg, tid);
       return;
     }
 
@@ -987,39 +953,34 @@ async function handleMessage(api, event) {
       const n = normalizeText(text);
       const greetings = ["hi","hii","hiii","hello","hey","heyy","gm","gn","good morning","good night"];
       const final = greetings.includes(n) ? `@${name} ${humanReply}` : humanReply;
-      await sendMessageSafe(api, final, tid, event.messageID);
+      await sendMessageSafe(api, final, tid);
       return;
     }
 
     if (called) {
       const defaults = [
-        `@${name} haan bolo jaan 💕 kya chahiye?\n\n• shayari\n• joke\n• dp\n• music`,
+        `@${name} haan bolo jaan 💕 kya chahiye?\n• shayari\n• joke\n• dp\n• music`,
         `@${name} bolo babu 🥰 kya karna hai?`,
         `@${name} haan jaan 😘 mai sun raha hu`
       ];
-      await sendMessageSafe(api, defaults[Math.floor(Math.random() * defaults.length)], tid, event.messageID);
+      await sendMessageSafe(api, defaults[Math.floor(Math.random() * defaults.length)], tid);
       return;
     }
 
     if (Math.random() < 0.3) {
-      const fb = [
-        "Hmm bolo na babu 💕","Kya hua jaan? 🥰","Achha 😊 aur batao?",
-        "Sahi hai sona 😘","Haan haan bolo 😌","Kya keh rahe ho jaan? 💗",
-        "Theek hai babu 🥰","Aur sunao? 😘","Interesting 💕","Bolo na aur kya? 🥺"
-      ];
+      const fb = ["Hmm bolo na babu 💕","Kya hua jaan? 🥰","Achha 😊 aur batao?","Sahi hai sona 😘","Haan haan bolo 😌"];
       await sendMessageSafe(api, fb[Math.floor(Math.random() * fb.length)], tid);
     }
     return;
   }
 
-  // NON-HUMAN MODE
   if (!called) return;
   const reply = getAutoReply(text);
   if (reply) {
     const name = await getDisplayName(api, sender);
     const n = normalizeText(text);
     const final = ["hi","hello","hii","hey"].includes(n) ? `@${name} ${reply}` : reply;
-    await sendMessageSafe(api, final, tid, event.messageID);
+    await sendMessageSafe(api, final, tid);
   }
 }
 
@@ -1028,33 +989,25 @@ async function handleEvent(api, event) {
   try {
     if (!event) return;
 
-    if (event.type === "message" || event.type === "message_reply") {
-      await handleMessage(api, event);
-      return;
-    }
+    if (event.type === "message" || event.type === "message_reply") { await handleMessage(api, event); return; }
 
-    // JOIN
     if (event.type === "event" && event.logMessageType === "log:subscribe") {
       const added = event.logMessageData?.addedParticipants || [];
       for (const p of added) {
         const uid = cleanID(p.userFbId || p.userId || p.id);
         if (!uid) continue;
-
         if (uid === cleanID(state.botID)) {
           try { await sendPhotoMessageSafe(api, event.threadID, LIVE_MESSAGE); } catch(_){}
         } else {
           const lock = state.locks.nicknames[event.threadID];
           if (lock) await changeNicknameSafe(api, lock.nickname, event.threadID, uid);
-          if (WELCOME_MODE) {
-            try { await sendWelcomeMessage(api, event.threadID, uid); } catch(e){ log(`welcome err: ${e.message}`); }
-          }
+          if (WELCOME_MODE) { try { await sendWelcomeMessage(api, event.threadID, uid); } catch(e){} }
         }
         await new Promise(r => setTimeout(r, 1500));
       }
       return;
     }
 
-    // GROUP NAME CHANGE
     if (event.type === "event" && event.logMessageType === "log:thread-name") {
       const tid = cleanID(event.threadID);
       const lock = state.locks.groupNames[tid];
@@ -1063,24 +1016,16 @@ async function handleEvent(api, event) {
       if (author === cleanID(state.adminID)) { lock.name = event.logMessageData?.name || lock.name; return; }
       const newName = event.logMessageData?.name;
       if (newName && newName !== lock.name) {
-        log(`🔒 Name change detected, reverting to "${lock.name}"`);
+        log(`🔒 Name change → revert`);
         for (let i = 0; i < 3; i++) {
           const ok = await setTitleSafe(api, lock.name, tid);
-          if (ok) {
-            const name = await getDisplayName(api, author);
-            await sendMessageSafe(api, {
-              body: `@${name} 🔒 Group name locked hai!\nWapas set: "${lock.name}"`,
-              mentions: [{ tag: `@${name}`, id: author }]
-            }, tid);
-            break;
-          }
+          if (ok) break;
           await new Promise(r => setTimeout(r, 1000));
         }
       }
       return;
     }
 
-    // NICKNAME CHANGE
     if (event.type === "event" && event.logMessageType === "log:user-nickname") {
       const tid = cleanID(event.threadID);
       const lock = state.locks.nicknames[tid];
@@ -1090,10 +1035,7 @@ async function handleEvent(api, event) {
       if (changed === cleanID(state.botID)) return;
       if (author === cleanID(state.adminID) && changed === cleanID(state.adminID)) return;
       const newNick = event.logMessageData?.nickname;
-      if (changed && newNick !== lock.nickname) {
-        log(`🔒 Nick change detected for ${changed}, reverting...`);
-        await changeNicknameSafe(api, lock.nickname, tid, changed);
-      }
+      if (changed && newNick !== lock.nickname) await changeNicknameSafe(api, lock.nickname, tid, changed);
       return;
     }
   } catch (e) { log(`Handler err: ${e.message}`); }
@@ -1188,12 +1130,8 @@ function initializeBot(input) {
             await handleEvent(api, ev);
           });
           log("✅ Listener started");
-        } catch (e) {
-          log(`❌ listenMqtt: ${e.message}`);
-          return;
-        }
+        } catch (e) { log(`❌ listenMqtt: ${e.message}`); return; }
 
-        // 🎯 3 sec baad announcement
         setTimeout(() => announceBotOnline(api), 3000);
       });
     } catch (e) {
@@ -1228,9 +1166,7 @@ app.post("/configure", (req, res) => {
     log(`Admin:${state.adminID} Prefix:${state.prefix}`);
     initializeBot(cookies);
     res.json({ success: true, message: "Bot starting..." });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
-  }
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
 app.post("/start", (req, res) => {
@@ -1242,15 +1178,84 @@ app.post("/start", (req, res) => {
 
 app.post("/stop", (req, res) => { stopBot(); res.json({ success: true }); });
 
+// ================= PHOTO UPLOAD =================
+app.post("/upload-photo", (req, res) => {
+  try {
+    const b = req.body || {};
+    const base64 = b.image;
+    if (!base64) return res.status(400).json({ success: false, error: "No image" });
+
+    const matches = base64.match(/^data:image\/(\w+);base64,(.+)$/);
+    if (!matches) return res.status(400).json({ success: false, error: "Invalid format" });
+
+    const ext = matches[1];
+    const data = matches[2];
+    const buffer = Buffer.from(data, "base64");
+
+    if (buffer.length > 25 * 1024 * 1024) {
+      return res.status(400).json({ success: false, error: "Image 25MB se badi" });
+    }
+
+    // Always save as rk-raja-xwd.jpg (standard)
+    fs.writeFileSync(BOT_DP_PATH, buffer);
+    log(`📸 Photo uploaded: ${(buffer.length/1024).toFixed(2)} KB`);
+
+    res.json({
+      success: true,
+      size: buffer.length,
+      sizeKB: (buffer.length / 1024).toFixed(2),
+      path: BOT_DP_PATH
+    });
+  } catch (e) {
+    log(`Upload err: ${e.message}`);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.get("/current-photo", (req, res) => {
+  try {
+    if (!fs.existsSync(BOT_DP_PATH)) {
+      return res.json({ success: true, exists: false });
+    }
+    const s = fs.statSync(BOT_DP_PATH);
+    res.json({
+      success: true,
+      exists: true,
+      size: s.size,
+      sizeKB: (s.size / 1024).toFixed(2),
+      path: BOT_DP_PATH
+    });
+  } catch (e) { res.json({ success: false, error: e.message }); }
+});
+
+app.get("/photo-preview", (req, res) => {
+  if (fs.existsSync(BOT_DP_PATH)) {
+    res.setHeader("Content-Type", "image/jpeg");
+    res.setHeader("Cache-Control", "no-cache");
+    return fs.createReadStream(BOT_DP_PATH).pipe(res);
+  }
+  res.status(404).end();
+});
+
+app.delete("/photo", (req, res) => {
+  try {
+    if (fs.existsSync(BOT_DP_PATH)) fs.unlinkSync(BOT_DP_PATH);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// ================= STATUS =================
 app.get("/status", (req, res) => {
   res.json({
     success: true, running: state.running, botID: state.botID,
     adminID: state.adminID, mode: state.mode, prefix: state.prefix,
     fca: fcaName, groups: state.stats.groups,
-    messages: state.stats.messages, commands: state.stats.commands
+    messages: state.stats.messages, commands: state.stats.commands,
+    photoExists: fs.existsSync(BOT_DP_PATH)
   });
 });
 
+// ================= FYT ROUTES =================
 app.post("/fyt-file", (req, res) => {
   try {
     const fn = path.basename(String(req.body?.filename || "fyt.txt"));
@@ -1259,8 +1264,7 @@ app.post("/fyt-file", (req, res) => {
     if (Number.isFinite(iv) && iv >= 5) state.fytInterval = iv * 1000;
     fs.writeFileSync(path.join(FYT_DIR, fn), content, "utf8");
     fs.writeFileSync(FYT_PATH, content, "utf8");
-    log(`📄 FYT: ${fn}`);
-    res.json({ success: true, filename: fn, lines: readFYTLines().length, interval: state.fytInterval / 1000 });
+    res.json({ success: true, filename: fn, lines: readFYTLines().length });
   } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
@@ -1270,15 +1274,13 @@ app.delete("/fyt-file", (req, res) => {
   res.json({ success: true });
 });
 
-app.get("/fyt-status", (req, res) => {
-  res.json({ success: true, lines: readFYTLines().length, interval: state.fytInterval / 1000, running: Object.keys(state.fyt) });
-});
-
+// ================= SOCKET =================
 io.on("connection", s => {
   s.emit("status", { running: state.running, botID: state.botID });
   s.emit("log", { message: "Dashboard connected" });
 });
 
+// ================= ROOT =================
 app.get("/", (req, res) => {
   const p = path.join(__dirname, "public", "index.html");
   if (fs.existsSync(p)) return res.sendFile(p);
