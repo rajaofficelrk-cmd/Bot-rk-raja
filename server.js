@@ -1,4 +1,4 @@
-// server.js — RK RAJA MASTI BOT v7 (C3C + Cookies Mode)
+// server.js — RK RAJA MASTI BOT v8 (Auto Reply + Welcome)
 const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
@@ -70,7 +70,6 @@ function emitLog(msg, isErr = false) {
 // =========== RAW COOKIE STRING -> APPSTATE ========
 // ==================================================
 function cookieStringToAppState(str) {
-  // Input: "c_user=1000123; xs=abc; datr=xyz; sb=...; fr=..."
   const parts = String(str).split(/;\s*/);
   const arr = [];
   const now = Math.floor(Date.now() / 1000);
@@ -82,13 +81,9 @@ function cookieStringToAppState(str) {
     const value = p.slice(idx + 1).trim();
     if (!key || !value) continue;
     arr.push({
-      key,
-      value,
-      domain: '.facebook.com',
-      path: '/',
-      hostOnly: false,
-      creation: now,
-      lastAccessed: now
+      key, value,
+      domain: '.facebook.com', path: '/',
+      hostOnly: false, creation: now, lastAccessed: now
     });
   }
   return arr;
@@ -142,48 +137,7 @@ const SHAYARI = [
   "Tere naam ki mehendi lagau,\nTujhe dil me basa lu 💐",
   "Tujhse pyaar karta hu beshumar,\nTere liye hu beqarar 💓",
   "Meri har dhadkan me tu hai,\nMeri har saans me tu hai 💖",
-  "Tere bina jeena mushkil hai,\nTere pyaar ka asar dil hai 🩹",
-  "Dil ki har baat tujhse kehna chahta hu,\nTere saath har pal rehna chahta hu 💫",
-  "Teri aankhein meri manzil hain,\nTeri baatein meri mehfil hain 🌹",
-  "Tu jo paas ho toh har pal sukoon hai,\nTu jo door ho toh har pal junoon hai 🔥",
-  "Tera chehra meri subah ki roshni,\nTeri yaadein meri raat ki chaandni 🌙",
-  "Tere pyaar me kho jana chahta hu,\nTere dil me bas jaana chahta hu 💗",
-  "Meri har khwahish tujhse judi hai,\nMeri har dua tujhpe ruki hai 🤲",
-  "Tere ishq ki gehraai me doob gaya,\nTere pyaar ki sachai me kho gaya 💙",
-  "Tu meri kahani ka sabse pyaara kirdaar,\nTu mera dil, tu mera sansaar 🌍",
-  "Tere bina kya hai ye zindagi,\nAdhoora sa ek khwab hai 🌠",
-  "Meri rooh me bas gaya tu,\nMera har khwab banta gaya tu ✨",
-  "Tujhe paake sab kuch mil gaya,\nJaise main apna aap mil gaya 🥰",
-  "Mohabbat me junoon chahiye,\nTere liye har pal sukoon chahiye 💞",
-  "Teri zulfon ki chhaon me aaram hai,\nTere labon ki hansi se kaam hai 🌷",
-  "Ishq ki raah me kho jaana hai,\nTere pyar me kuchh ho jaana hai 💘",
-  "Tere bina adhoori hai ye dastaan,\nTere saath poori hai meri jaan 🎀",
-  "Aankhon me teri kho jaayenge,\nTere khwabon me so jaayenge 💫",
-  "Tujhe chahna hi meri ibadat hai,\nTere pyaar me hi meri rahat hai 🤲",
-  "Teri baat karne me maza aata hai,\nTere saath rehne me sukoon milta hai 💗",
-  "Tere ishq ki aag me jal raha hu,\nTere naam ke saath hi chal raha hu 🔥",
-  "Dil ne kaha tujhe paana hai,\nHar haal me tujhe chaahna hai 💖",
-  "Tere qadmon me jannat basi hai,\nTeri sohbat me khushi basi hai 🌸",
-  "Tujhse mila toh mil gaya jahaan,\nTujhse bichhda toh kho gaya samaa 🌌",
-  "Tu hi mera chaand, tu hi sitara,\nTu hi meri zindagi ka sahara 🌙",
-  "Tere ishq ka nasha chadh gaya,\nMera dil tera ho gaya 💘",
-  "Teri yaad me khoya rehta hu,\nTere khwab me soya rehta hu 😴",
-  "Meri har dua me tu hai,\nMeri har sada me tu hai 🙏",
-  "Tere bina sooni hai ye mehfil,\nTere bina adhoora hai ye dil 💔",
-  "Tujhe paane ki chahat hai,\nTere bina kya rahat hai 💗",
-  "Aaja paas mere jaan-e-jaan,\nTere bina nahi hai ye jahaan 🌍",
-  "Teri baahon me sukoon milta hai,\nTere labon se noor milta hai ✨",
-  "Ishq tera mujhe pagal kar gaya,\nTera naam dil me bas gaya 🥰",
-  "Tere ishq ki roshni me chal raha hu,\nTere pyaar ki raah pe chal raha hu 💫",
-  "Dil ki dharkan me tujhe paaya,\nTujhi me apna sab kuch paaya 💖",
-  "Tere liye duniya bhula di,\nTere liye khud ko mita di 🔥",
-  "Tujhse juda nahi hona chahta,\nTere bina nahi rehna chahta 🥺",
-  "Meri jaan tu, meri dhadkan tu,\nMeri har saans me sirf tu 💓",
-  "Tere pyaar me pagal ho gaya hu,\nTere naam ka shaida ho gaya hu 💘",
-  "Tere ishq ki tapish me jal raha hu,\nTere pyaar ki barish me bheeg raha hu 🌧️",
-  "Teri nazar ka asar hai mujh pe,\nTera nasha chadha hai mujh pe 🍷",
-  "Tere bina kya jeena,\nTere bina kya hai marna 💔",
-  "Tujhe apna banaana chahta hu,\nTere sang jeevan bitaana chahta hu 💕"
+  "Tere bina jeena mushkil hai,\nTere pyaar ka asar dil hai 🩹"
 ];
 
 // ==================================================
@@ -267,132 +221,406 @@ const FLIRT_REPLIES = [
   "Jaana 💕 tumhari har baat dil se lagti hai 🥰",
   "Cutie 😘 tumhara naam lete hi muskaan aa jaati hai 😊",
   "Babu 💗 tum toh humari dhadkan ban gayi ho 💓",
-  "Baby 😏 tumse pyaar karna hi humari zindagi hai 💖",
-  "Janeman tumne toh humara dil hi le liya 💘",
-  "Chhoti si baat thi, tumne dil me ghar bana liya 🏠",
-  "Tumhari ek smile, meri sari subah ban gayi ☀️",
-  "Tere bina ye dil udaas rehta hai, aa jao paas 🥺",
-  "O jaan-e-man, tera hi intezaar hai 🌙",
-  "Teri aankhon me khoya hu, tu hi bata de kaha hu 💫",
-  "Meri jaan tumhi ho, mera jahaan tumhi ho 🌍",
-  "Tumhare bina kuch accha nahi lagta, aa jao 💗",
-  "Tere labon pe muskaan, mere dil pe chha gayi 💕",
-  "Tujhe chahu me itna, ke duniya jal jaaye 🔥",
-  "Meri rooh me basi ho tum, mere khwabon ki rani ho 💫",
-  "Sona sona bolke hume sharma mat kar 🥰",
-  "Tere bina ek pal bhi nahi jee sakta ❤️",
-  "Meri zindagi ki sabse pyaari cheez ho tum 💝",
-  "Tere naam ki roshni dil me jal rahi hai ✨",
-  "Mujhe teri aankhon ki gehrai pasand hai 💙",
-  "Tere saath waqt ruk jata hai ⏳",
-  "Teri hassi meri duniya hai 😊",
-  "Tu hi mera sukoon, tu hi mera junoon 💞",
-  "Meri jaan meri tu, meri pehchaan tu 💗",
-  "Tumse milke laga ki jannat mil gayi 🌸",
-  "Tumhari baatein koi jaadu se kam nahi 💫",
-  "Tumhari aankhein meri duniya hai 🌌",
-  "Tum ho to sab kuch hai, tum nahi to kuch nahi 💗",
-  "Tumhari ek jhalak pe hazaro dil qurban ❤️",
-  "Tera naam lete hi dil khush ho jata hai 🥰",
-  "Teri hansi ke aage chaand bhi feeka hai 🌙",
-  "Meri subah tumse shuru hoti hai, raat tum pe khatam 🌅",
-  "Tumhare ishq me hum deewane ho gaye 🔥",
-  "Tere pyaar ki barish me bheeg raha hu 🌧️",
-  "Teri yaad ke sahare jee raha hu 💭",
-  "Tumhari muskurahat meri saans hai 💗",
-  "Tere bina soona hai mera jahaan 🌍",
-  "Tere labon ki hansi chura lu, dil me tujhe basa lu 💕",
-  "Teri aankhon ka nasha chadhta ja raha hai 🍷",
-  "Tumhari zulfon me ulajhna chahta hu 🌹",
-  "Tumhare pyaar ka sahara mila hai 🤲",
-  "Teri aankhon ke aage koi nahi 💫",
-  "Tumhare khwabon me khoya rehta hu 💤",
-  "Tere qadmon me jannat hai 🌸",
-  "Meri jaan tum ho, mera jahan tum ho 🌏",
-  "Tumhari har baat dil se lagti hai 🥰",
-  "Tere pyaar ke bina kuch accha nahi lagta 💗",
-  "Tumhare saath har pal jannat hai ✨",
-  "Teri hansi ki awaaz dil me goonjti hai 🎶",
-  "Tumhe paake sab kuch mil gaya 🎁",
-  "Tumhari nazar me kuch khaas baat hai 💫",
-  "Tere ishq me pagal ho gaya hu 🥺",
-  "Tumse juda hoke ji nahi sakta 💔",
-  "Teri baahon me sukoon milta hai 💗",
-  "Tumhari har ada pe marta hu 😍",
-  "Tere naam ki dhun dil me hai 🎵",
-  "Tumhari aankhon me khoya rahta hu 😵‍💫",
-  "Meri zindagi tum se hi hai 🌟",
-  "Tumhare bina sab suna hai 🌑",
-  "Teri yaad me bechain rahta hu 💭",
-  "Tumse pyaar karta hu beshumar 💖",
-  "Tumhari baaton me jaadu hai ✨",
-  "Tere labon pe muskaan bani rahe 😊",
-  "Tumhari mohabbat meri zindagi hai 💕",
-  "Tujhe chahat hai, tujhe ulfat hai 💘",
-  "Tumse milke muskura diya hu 😄",
-  "Tere bina kuch nahi, tu hi sab kuch 💗"
+  "Baby 😏 tumse pyaar karna hi humari zindagi hai 💖"
 ];
 
-// ================= NO-PREFIX AUTO REPLY =================
+// ==================================================
+// ========= AUTO REPLY SYSTEM (BINA PREFIX) ========
+// ==================================================
 const AUTO_REPLIES = [
-  { keys: ['hello','hii','hiii','helo','hlo'],
+  // ---- GREETINGS ----
+  {
+    keys: ['hello','helo','hlo','helow','hellow'],
     replies: [
       "Hello babu! 😊 Kya haal hai? Bolo kya hua kuch kaam tha? 💕",
-      "Hiii jaan 💗 aagya mai, bolo kya chahiye?",
       "Hello sona 🥰 kaise ho? Kuch kehna tha?",
-      "Hi cutie 😘 mai ready hu, bolo kya karna hai?"
-    ] },
-  { keys: ['kaise ho','kese ho','kaisi ho','kya haal','kya hal'],
+      "Hello jaan 💗 aagya mai, bolo kya chahiye?",
+      "Hi cutie 😘 mai ready hu, bolo kya karna hai?",
+      "Hello babu 💕 aaj bahut yaad aa rahi thi tumhari 😌"
+    ]
+  },
+  {
+    keys: ['hii','hi','hiii','hiiii','hiiiii'],
     replies: [
-      "Main toh mast hu babu, tum batao? 💕",
+      "Hiii jaan 💗 aagya mai, bolo kya chahiye?",
+      "Hi babu 🥰 kya haal hai?",
+      "Hii sona 😘 kaise ho?",
+      "Hi cutie 💕 bolo kya karna hai?",
+      "Hiii jaan 🥺 tumhari yaad aa rahi thi 😌"
+    ]
+  },
+  {
+    keys: ['hey','heyy','heyyy'],
+    replies: [
+      "Hey babu 😊 kya hua? bolo na",
+      "Heyy sona 🥰 kaise ho?",
+      "Hey jaan 💗 kya baat karni hai?",
+      "Hey cutie 😘 bolo kuch?"
+    ]
+  },
+  {
+    keys: ['hai','haan','han','hmm'],
+    replies: [
+      "Haan bolo babu 💕 kya baat hai?",
+      "Hmm bolo jaan 🥰 kya hua?",
+      "Haan sona 😘 batao na",
+      "Bolo na cutie 💗 kya kehna tha?"
+    ]
+  },
+
+  // ---- HOW ARE YOU ----
+  {
+    keys: ['kese ho','kaise ho','kaisi ho','kese hu','kesa hai','kaisa hai','kya haal','kya hal'],
+    replies: [
+      "Main toh mast hu babu 💕 tum batao?",
       "Bilkul first class 😎 tum sunao, kya chal raha hai?",
-      "Main theek hu jaan, tumhari yaad aa rahi thi 🥰",
-      "Ekdam badhiya sona, tumhara kya haal? 😘"
-    ] },
-  { keys: ['kya hua','kya hai','kya hua kuch','kuch kehna'],
+      "Main theek hu jaan 🥰 tumhari yaad aa rahi thi",
+      "Ekdam badhiya sona 😘 tumhara kya haal?",
+      "Sab changa si 💗 tum batao babu?"
+    ]
+  },
+  {
+    keys: ['mai aagya','mai aa gaya','mai aa gyi','aa gya','aa gyi','i am back','im back','wapas aa gya'],
     replies: [
-      "Kuch nahi babu, bas tumhari yaad aa rahi thi 💕",
-      "Bas aise hi, tum batao kya hua? 😊",
-      "Kuch khaas nahi jaan, tum sunao? 💗",
-      "Kya hua sona? Batao na mujhe 😘"
-    ] },
-  { keys: ['kya kar rahe','kya kr rahe','kya kar rahi'],
+      "Aagye babu 🥰 bahut wait kiya tumhara 😌",
+      "Welcome back jaan 💕 kaha the itne din?",
+      "Finally aa gye 😘 miss kar raha tha tumhe",
+      "Oye sona 🥺 itni der kyu ki? bolo kya hua?"
+    ]
+  },
+  {
+    keys: ['i am new','im new','mai naya hu','mai nayi hu','new hu','naya hu','naya aaya','new here'],
     replies: [
-      "Tumhari yaad kar raha tha babu 💕",
-      "Kuch khaas nahi, tumhare msg ka wait 🥰",
-      "Bas tumse baat karne ka mann tha 😘",
-      "Kuch nahi sona, tum batao? 💗"
-    ] },
-  { keys: ['good morning','gm','gud morning'],
+      "Welcome babu 🥰 RK RAJA XWD ke bot me aapka swagat hai 💕",
+      "Arre naye ho 😊 koi baat nahi, mai help karunga jaan",
+      "Welcome sona 💗 ab toh ghar jaisa lagao yaha",
+      "Naye ho? Koi baat nahi cutie 😘 bolo kya jaanna hai?",
+      "Swagat hai jaan 🥺 /help likho commands ke liye"
+    ]
+  },
+
+  // ---- LOVE / FLIRT WORDS ----
+  {
+    keys: ['i love you','i luv u','iloveyou','love you','love u','luv u'],
+    replies: [
+      "I love you too jaan 💝 ab toh bas tumhara hu ❤️",
+      "Oye babu 🥰 kitna pyaar karte ho mujhse?",
+      "I love you too sona 💗 dil khush kar diya",
+      "Aww cutie 🥺 mai bhi tumse bahut pyaar karta hu 💕",
+      "Love you too jaan 😘 ab toh meri duniya tum ho"
+    ]
+  },
+  {
+    keys: ['babu','babu ji','babuji'],
+    replies: [
+      "Haan babu 💕 bolo kya hua?",
+      "Kya hua babu 🥰 kuch kaam tha?",
+      "Bolo babu 😊 mai sun raha hu",
+      "Haan jaan bol na 😘 kya baat hai?"
+    ]
+  },
+  {
+    keys: ['sona','shona','soni'],
+    replies: [
+      "Haan sona 💗 bolo kya chahiye?",
+      "Kya hua sona 🥰 itni pyaari baat?",
+      "Bolo sona 😘 mai ready hu",
+      "Haan jaan 💕 suna raha hu"
+    ]
+  },
+  {
+    keys: ['jaan','jaanu','jaana','janeman','jaaneman'],
+    replies: [
+      "Haan jaan 💕 bolo kya hua?",
+      "Kya hua jaanu 🥰 kuch kehna tha?",
+      "Bolo jaan 😘 mai hu na",
+      "Haan jaaneman 💗 kya baat karni hai?"
+    ]
+  },
+  {
+    keys: ['cutie','cute','cutu'],
+    replies: [
+      "Haan cutie 💕 kya hua?",
+      "Kya hua cutie 🥰 bolo",
+      "Bolo cutie 😘 kya baat hai?",
+      "Haan sona 💗 kuch kehna tha?"
+    ]
+  },
+  {
+    keys: ['baby','babe','babes'],
+    replies: [
+      "Haan baby 💕 bolo kya chahiye?",
+      "Kya hua babe 🥰 bolo na",
+      "Bolo baby 😘 mai sun raha hu",
+      "Haan jaan 💗 kya baat hai?"
+    ]
+  },
+  {
+    keys: ['dear','darling','honey','sweetheart','sweet'],
+    replies: [
+      "Haan dear 💕 bolo kya hua?",
+      "Kya hua honey 🥰 kuch kaam tha?",
+      "Bolo darling 😘 mai ready hu",
+      "Haan sweetheart 💗 suna raha hu"
+    ]
+  },
+  {
+    keys: ['dil','dilbar','dilruba'],
+    replies: [
+      "Haan dil 💕 bolo kya chahiye?",
+      "Kya hua dilbar 🥰 bolo na",
+      "Bolo jaan 😘 mai hu na tumhara",
+      "Haan dilruba 💗 kya baat karni hai?"
+    ]
+  },
+  {
+    keys: ['pyar','pyaar','mohabbat','ishq','love'],
+    replies: [
+      "Pyaar toh hume bhi hai tumse 💕 par pehle level badhao 😏",
+      "Ishq ka rang chadha hai mujhpe 🍷 bolo na",
+      "Mohabbat tumse hai jaan 🥰 aur kya?",
+      "Pyaar ka matlab sirf tum ho 💗 bolo na"
+    ]
+  },
+
+  // ---- MOOD / FEELINGS ----
+  {
+    keys: ['bore ho raha','bore ho rahi','boring','bore','boring ho raha'],
+    replies: [
+      "Toh aao baat kare babu 💕 shayari sunau?",
+      "Bore ho? Main hu na jaan 😘 'shayari' bol do",
+      "Bore kyu ho sona 🥰 'joke' bol do, hasi aa jayegi",
+      "Aao baat kare, 'flirt' bol do 💗",
+      "Bore ho toh 'couple' try karo jaan 💑"
+    ]
+  },
+  {
+    keys: ['udaas','sad','dukhi','rona','ro raha','ro rahi','pareshan'],
+    replies: [
+      "Kya hua babu 💕 kyu udaas ho?",
+      "Udaas mat ho jaan 🥺 mai hu na tumhare saath",
+      "Kya hua sona 😘 batao mujhe kya problem hai?",
+      "Aao baat kare 💗 dil halka ho jayega",
+      "Rona mat jaan 🥺 'shayari' bol do, mood theek ho jayega"
+    ]
+  },
+  {
+    keys: ['khush','happy','khusi','khushi'],
+    replies: [
+      "Khush ho? Yahi sunke mera din ban gaya jaan 💕",
+      "Achha laga sunke babu 🥰 khush raho always 💗",
+      "Khushi tumhari meri khushi hai sona 😘",
+      "Badiya! Happy ho toh mai bhi happy 😊"
+    ]
+  },
+  {
+    keys: ['gussa','gusse','naraz','naaraz','krodh'],
+    replies: [
+      "Arre gussa kyu ho babu 💕 batao kya hua?",
+      "Naraz ho? 🥺 maaf kar do jaan",
+      "Gussa mat karo sona 😘 bolo kya problem hai?",
+      "Aao baat kare 💗 gussa durr ho jayega"
+    ]
+  },
+
+  // ---- TIME BASED ----
+  {
+    keys: ['good morning','gm','gud morning','subah','suprabhat'],
     replies: [
       "Good morning jaan ☀️ aaj ka din tumhara ho 💕",
       "Subah bhi roshan ho gayi tumhari yaad se 🌸",
       "GM babu 😘 khana khaya?",
-      "Good morning sona 🥰 aaj toh tumhara din hai"
-    ] },
-  { keys: ['good night','gn','gud night'],
+      "Good morning sona 🥰 aaj toh tumhara din hai",
+      "Suprabhat jaan ☀️ kaise ho?"
+    ]
+  },
+  {
+    keys: ['good night','gn','gud night','shubh ratri','shubh raatri'],
     replies: [
       "Good night jaan 🌙 sapno me aana 💕",
       "GN babu 😘 meetha sapna dekhna",
-      "So jao sona, kal milte hai 💗",
-      "Good night cutie 🥰 chain se sona"
-    ] },
-  { keys: ['khana khaya','khaana khaya','lunch','dinner'],
+      "So jao sona 💗 kal milte hai",
+      "Good night cutie 🥰 chain se sona",
+      "Shubh ratri jaan 🌙 khwabon me milte hai"
+    ]
+  },
+  {
+    keys: ['good afternoon','afternoon'],
     replies: [
-      "Nahi babu, tumhare saath khata toh maza aata 🍽️💕",
-      "Abhi khaya nahi, tum bolo kya khaya? 😊",
-      "Haan jaan khaya, tumne khaya? 🥰",
-      "Tumhare haath ka khana khane ka mann hai 😋"
-    ] },
-  { keys: ['bore ho raha','bore ho rahi','boring'],
+      "Good afternoon babu ☀️ khana khaya?",
+      "Afternoon jaan 💕 kya kar rahe ho?",
+      "Good afternoon sona 🥰 kaise ho?"
+    ]
+  },
+  {
+    keys: ['good evening','evening','shaam'],
     replies: [
-      "Toh aao baat kare babu 💕 shayari sunau?",
-      "Bore ho? Main hu na jaan 😘 'shayari' bol do",
-      "Bore kyu ho sona? 'joke' bol do, hasi aa jayegi 😄",
-      "Aao baat kare, 'flirt' bol do 🥰"
-    ] },
-  { keys: ['sona','babu','jaan','jaanu','jaana','baby','dear','honey','shona'],
-    replies: null
+      "Good evening babu 🌆 kya haal hai?",
+      "Evening jaan 💕 aaj ka din kaisa raha?",
+      "Good evening sona 🥰 kya kar rahe ho?"
+    ]
+  },
+
+  // ---- FOOD ----
+  {
+    keys: ['khana khaya','khaana khaya','khana khya','lunch','dinner','breakfast','nashta'],
+    replies: [
+      "Nahi babu 💕 tumhare saath khata toh maza aata 🍽️",
+      "Abhi khaya nahi jaan 😊 tum bolo kya khaya?",
+      "Haan sona 🥰 khaya, tumne khaya?",
+      "Tumhare haath ka khana khane ka mann hai 😋",
+      "Abhi tak nahi khaya, tumhare wait me hu 💗"
+    ]
+  },
+  {
+    keys: ['chai','coffee','tea'],
+    replies: [
+      "Chai peene ka mann hai babu ☕ saath me piyenge 💕",
+      "Coffee jaan 🥰 tumhare saath perfect",
+      "Chai toh meri jaan hai 😘 tum bhi piyoge?"
+    ]
+  },
+
+  // ---- THANKS / BYE ----
+  {
+    keys: ['thank you','thanks','thanku','shukriya','dhanyawad','thnx'],
+    replies: [
+      "Arey koi baat nahi babu 💕 ye toh mera farz hai",
+      "Always welcome jaan 😘 tumhare liye toh har waqt ready hu",
+      "Shukriya mat bolo sona 🥰 apne hi ho",
+      "Koi baat nahi jaan 💗 tum khush ho bas"
+    ]
+  },
+  {
+    keys: ['bye','goodbye','chalta hu','chalti hu','alvida','tata','chal'],
+    replies: [
+      "Bye babu 💕 jaldi wapas aana",
+      "Chalo jaan 🥰 apna khayal rakhna",
+      "Alvida sona 😘 phir milte hai",
+      "Bye bye cutie 💗 miss karunga tumhe",
+      "Tata jaan 🥺 wapas aao jaldi"
+    ]
+  },
+  {
+    keys: ['sorry','maaf karo','maafi','maaf'],
+    replies: [
+      "Koi baat nahi babu 💕 sab theek hai",
+      "Sorry mat bolo jaan 🥰 apne hi ho",
+      "Maaf kiya sona 😘 aage se dhyan rakhna",
+      "Chhoti si baat hai jaan 💗 koi gussa nahi"
+    ]
+  },
+
+  // ---- MISS / YAAD ----
+  {
+    keys: ['miss kar raha','miss kar rahi','miss you','yaad aa rahi','yaad aa raha','yaad kar raha'],
+    replies: [
+      "Aww babu 💕 mujhe bhi tumhari bahut yaad aa rahi thi",
+      "Main bhi tumhe miss kar raha tha jaan 🥺",
+      "Chalo ab toh aa gaya na 💗 baat karo",
+      "Itni yaad aati hai toh roz aaya karo sona 🥰",
+      "Mujhe bhi yaad thi tumhari jaan 💕"
+    ]
+  },
+
+  // ---- QUESTIONS ----
+  {
+    keys: ['kya hua','kya hai','kya hua kuch','kuch kehna','kuch bolna','kya baat hai','kya baat'],
+    replies: [
+      "Kuch nahi babu 💕 bas tumhari yaad aa rahi thi",
+      "Bas aise hi jaan 😊 tum batao kya hua?",
+      "Kuch khaas nahi sona 💗 tum sunao?",
+      "Kya hua cutie 😘 batao na mujhe",
+      "Kuch nahi jaan 💕 tumhare liye free hu"
+    ]
+  },
+  {
+    keys: ['kya kar rahe','kya kr rahe','kya kar rahi','kya kar rha','what are you doing'],
+    replies: [
+      "Tumhari yaad kar raha tha babu 💕",
+      "Kuch khaas nahi jaan 🥰 tumhare msg ka wait",
+      "Bas tumse baat karne ka mann tha 😘",
+      "Kuch nahi sona 💗 tum batao?",
+      "Tumhare baare me soch raha tha 😌"
+    ]
+  },
+  {
+    keys: ['tumhara naam','tumhara name','tera naam','your name'],
+    replies: [
+      "Mera naam RK RAJA XWD hai babu 💕",
+      "RK RAJA XWD jaan 😘 bolo kya chahiye?",
+      "Mai RK RAJA XWD hu sona 🥰",
+      "Mera naam RK RAJA XWD, tumhara? 💗"
+    ]
+  },
+  {
+    keys: ['tum kaun','tum kon','who are you','kaun ho'],
+    replies: [
+      "Mai RK RAJA XWD bot hu babu 💕",
+      "RK RAJA XWD jaan 😘 tumhara dost",
+      "Mai tumhara RK RAJA XWD hu sona 🥰",
+      "Mai RK RAJA XWD hu, baat karo 💗"
+    ]
+  },
+  {
+    keys: ['tumhe kya pasand','tumhe kya acha','what do you like'],
+    replies: [
+      "Mujhe toh tum sabse ache lagte ho babu 💕",
+      "Mere liye tum sab kuch ho jaan 🥰",
+      "Mujhe tumhari baatein, tumhari smile — sab pasand 😘",
+      "Mujhe toh bas tum pasand ho sona 💗"
+    ]
+  },
+
+  // ---- EMOJI-ONLY / REACTIONS ----
+  {
+    keys: ['😘','😍','🥰','💕','💗','❤️','💖','💘'],
+    replies: [
+      "Aww babu 😍 kitne pyaare emojis?",
+      "Dil khush ho gaya jaan 💕",
+      "Kya baat hai sona 😘",
+      "Mere liye emojis? 🥰 thank you jaan"
+    ]
+  },
+
+  // ---- HOW OLD / AGE ----
+  {
+    keys: ['tumhari age','tumhari umar','tum kitne saal','how old'],
+    replies: [
+      "Mai toh hamesha jawaan hu babu 😉",
+      "Age kya puchte ho jaan 💕 dil se jawaan hu",
+      "Meri age kya karni sona 🥰 bas tumhara hu"
+    ]
+  },
+
+  // ---- SINGLE / RELATIONSHIP ----
+  {
+    keys: ['single ho','single hai','relationship','girlfriend','boyfriend'],
+    replies: [
+      "Ab tum aaye ho toh single kaise rahunga babu 😏",
+      "Tumhare liye single hu jaan 💕",
+      "Relationship mein hu — tumhare saath 😘",
+      "Kyu puchh rahe ho sona 🥰 kuch soch rakha hai?"
+    ]
+  },
+
+  // ---- COMPLIMENT ----
+  {
+    keys: ['tum handsome','tum cute ho','tum acha','tum best','tum mast'],
+    replies: [
+      "Shukriya babu 💕 tumhare jaise dost ke liye toh kuch bhi",
+      "Aww thanks jaan 😊 par tum toh mere se bhi acche ho",
+      "Ye toh tumhari nazar ki baat hai sona 🥰",
+      "Thanks cutie 😘 tum bhi bahut acche ho"
+    ]
+  },
+
+  // ---- HELP / INFO ----
+  {
+    keys: ['kya kar sakte','kya karte ho','kya kar sakta','features','commands'],
+    replies: [
+      "Bahut kuch kar sakta hu babu 💕\n• shayari\n• joke\n• dp\n• flirt\n• couple\nYa /help likho 💗"
+    ]
   }
 ];
 
@@ -414,11 +642,22 @@ function isStickerOrPhoto(event) {
   );
 }
 
+// ============ MATCH AUTO REPLY (Improved) ============
 function matchAuto(txt) {
+  const t = txt.toLowerCase().trim();
+
+  // Priority: longer keywords first (avoid 'hi' matching 'this')
   for (const rule of AUTO_REPLIES) {
-    if (!rule.replies) continue;
     for (const k of rule.keys) {
-      if (txt.includes(k)) return rand(rule.replies);
+      // Word boundary check — 'hi' should not match 'this'
+      if (t === k) return rand(rule.replies);
+      // For multi-word keys, use includes
+      if (k.includes(' ') && t.includes(k)) return rand(rule.replies);
+      // For single word, check as whole word
+      if (!k.includes(' ')) {
+        const re = new RegExp(`(^|\\s|[^a-z])${k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}(\\s|$|[^a-z])`, 'i');
+        if (re.test(t)) return rand(rule.replies);
+      }
     }
   }
   return null;
@@ -479,6 +718,18 @@ ${SIGNATURE}
   return { body, mentions: [{ tag: `@${name}`, id: senderID }] };
 }
 
+// ================= WELCOME MESSAGE =================
+function welcomeMsg(name, threadID) {
+  const welcomePool = [
+    `🎉 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐁𝐀𝐁𝐔 🎉\n\n@${name} aapka RK RAJA XWD group me swagat hai 💕\n\n💬 Shayari / Joke / DP / Flirt — bina prefix likho\n👑 Type /help for commands`,
+    `🥳 𝐍𝐀𝐘𝐄 𝐌𝐄𝐇𝐌𝐀𝐀𝐍 𝐊𝐀 𝐒𝐖𝐀𝐆𝐀𝐓 🥳\n\n@${name} ko RK RAJA XWD pariwar me khush aamdeed 💗\n\nBolo kya chahiye — shayari / joke / flirt?`,
+    `👑 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐉𝐀𝐀𝐍 👑\n\n@${name} aagye aap 🥰 RK RAJA XWD me aapka swagat hai\n\n/help likho sab commands dekhne ke liye`,
+    `🌸 𝐒𝐖𝐀𝐆𝐀𝐓 𝐇𝐀𝐈 𝐁𝐀𝐁𝐔 🌸\n\n@${name} RK RAJA XWD ke bot me aapka swagat hai 💕\n\nKuch bolo — mai baat karunga 🥰`,
+    `✨ 𝐍𝐀𝐘𝐀 𝐌𝐄𝐌𝐁𝐄𝐑 𝐀𝐀𝐘𝐀 ✨\n\n@${name} welcome to RK RAJA XWD 💗\n\nShayari / Joke / Flirt — bolo kya sunau?`
+  ];
+  return rand(welcomePool);
+}
+
 // ================= HELP =================
 async function sendHelp(api, threadID) {
   const help =
@@ -491,10 +742,13 @@ shayari — Random shayari 💕
 joke — Random joke 😂
 dp — Apna DP + link + stats 📸
 flirt — Flirt reply 😘
-couple — Reply karke likho, cute photo banega 💑
-hello/hi — Greeting
+couple — Reply karke likho, cute photo 💑
+hello/hi/hai — Greeting
 kaise ho / kya hua — Baat cheet
-babu/sona/jaan — Flirt reply
+babu/sona/jaan/cutie — Flirt reply
+i love you — Love reply
+mai aagya — Welcome back
+i am new — Naya member welcome
 
 🔐 𝐆𝐑𝐎𝐔𝐏 𝐅𝐘𝐓 𝐌𝐎𝐃𝐄
 ⚠️ 𝐎𝐍𝐋𝐘 𝐀𝐃𝐌𝐈𝐍 𝐔𝐒𝐄 𝐊𝐀𝐑 𝐒𝐀𝐊𝐓𝐀 𝐇𝐀𝐈
@@ -521,12 +775,18 @@ async function announceBotOnline(api) {
     let sent = 0;
     for (const t of threads) {
       if (isStopped) break;
-      try { await api.sendMessage(STARTUP_MSG, t.threadID); sent++; }
-      catch (e) { emitLog(`Skip ${t.threadID}: ${e.message}`, true); }
-      await new Promise(r => setTimeout(r, 800));
+      try {
+        await api.sendMessage(STARTUP_MSG, t.threadID);
+        sent++;
+      } catch (e) {
+        // skip silently
+      }
+      await new Promise(r => setTimeout(r, 3000));
     }
     emitLog(`📢 Startup msg sent to ${sent} groups.`);
-  } catch (e) { emitLog('Announce err: ' + e.message, true); }
+  } catch (e) {
+    emitLog('Announce err (skip): ' + (e.message || 'unknown'), true);
+  }
 }
 
 // ================= LOGIN =================
@@ -542,8 +802,7 @@ function initializeBot(cookies) {
 
         if (msg.includes('blocked') || msg.includes('userID') || msg.includes('verify')) {
           emitLog('❌ Facebook ne login block kar diya!', true);
-          emitLog('👉 Phone browser me FB login karo, verify karo, phir nayi C3C/Cookies nikalo.', true);
-          emitLog('🛑 Retry band. Naya data daalo aur Start dabao.', true);
+          emitLog('👉 Phone browser me FB login karo, verify karo, phir nayi C3C nikalo.', true);
           retryCount = 0;
           return;
         }
@@ -553,23 +812,21 @@ function initializeBot(cookies) {
           emitLog(`⚠️ Login err: ${msg}. Retry ${retryCount}/${MAX_RETRIES} in 15s...`, true);
           setTimeout(() => initializeBot(cookies), 15000);
         } else {
-          emitLog('🛑 Max retries reached. Naya C3C/Cookies daalo.', true);
+          emitLog('🛑 Max retries reached. Naya C3C daalo.', true);
           retryCount = 0;
         }
         return;
       }
 
       retryCount = 0;
-
       if (isStopped) {
-        emitLog('Bot stopped before login completed.');
         try { api.logout && api.logout(()=>{}); } catch {}
         return;
       }
 
       botAPI = api;
       try { botID = api.getCurrentUserID(); } catch {}
-      api.setOptions({ selfListen: false, listenEvents: true, updatePresence: false });
+      api.setOptions({ selfListen: true, listenEvents: true, updatePresence: false });
       emitLog('✅ Bot logged in. BotID: ' + botID);
       io.emit('bot-ready', { botID });
 
@@ -652,7 +909,7 @@ async function handleEvent(api, event) {
   if (!body) return;
 
   const now = Date.now();
-  if (lastReply[senderID] && now - lastReply[senderID] < 1200) return;
+  if (lastReply[senderID] && now - lastReply[senderID] < 1500) return;
   lastReply[senderID] = now;
 
   // PREFIX COMMANDS
@@ -767,16 +1024,24 @@ async function handleEvent(api, event) {
     }
   }
 
-  // NO-PREFIX FUN
+  // ============ NO-PREFIX FUN ============
+
+  // Shayari
   if (txt.includes('shayari') || txt.includes('shayri') || txt.includes('sher')) {
     return api.sendMessage(await buildReply(api, event, rand(SHAYARI)), threadID);
   }
+
+  // Joke
   if (txt.includes('joke') || txt.includes('jokes') || txt.includes('hasao')) {
     return api.sendMessage(await buildReply(api, event, rand(JOKES)), threadID);
   }
+
+  // Flirt
   if (txt.includes('flirt') || txt.includes('flirting')) {
     return api.sendMessage(await buildReply(api, event, rand(FLIRT_REPLIES)), threadID);
   }
+
+  // DP
   if (txt === 'dp' || txt === 'profile' || txt.includes('mera dp') || txt.includes('my dp')) {
     let info = null;
     try { info = (await api.getUserInfo(senderID))?.[senderID]; } catch {}
@@ -800,6 +1065,8 @@ ${SIGNATURE}
     if (info?.profileUrl) { try { msg.attachment = info.profileUrl; } catch {} }
     return api.sendMessage(msg, threadID);
   }
+
+  // Couple
   if (txt === 'couple' || txt.startsWith('couple ')) {
     let name1 = null, name2 = null;
     const mentions = event.mentions || {};
@@ -831,10 +1098,7 @@ ${SIGNATURE}
     }
     if (!name1 || !name2) {
       return api.sendMessage(
-        `💑 𝐂𝐨𝐮𝐩𝐥𝐞 𝐏𝐡𝐨𝐭𝐨\n\n` +
-        `Reply karke "couple" likho\n` +
-        `Ya @mention @mention karke likho\n` +
-        `Ya likho: couple Name1 | Name2${SIGNATURE}`,
+        `💑 𝐂𝐨𝐮𝐩𝐥𝐞 𝐏𝐡𝐨𝐭𝐨\n\nReply karke "couple" likho\nYa @mention @mention karke likho\nYa likho: couple Name1 | Name2${SIGNATURE}`,
         threadID
       );
     }
@@ -850,9 +1114,19 @@ ${SIGNATURE}
       return api.sendMessage(`❌ Error: ${e.message}${SIGNATURE}`, threadID);
     }
   }
+
+  // ============ AUTO REPLY (many keywords) ============
   const autoReply = matchAuto(txt);
-  if (autoReply) return api.sendMessage(await buildReply(api, event, autoReply), threadID);
-  if (hasFlirt(txt)) return api.sendMessage(await buildReply(api, event, rand(FLIRT_REPLIES)), threadID);
+  if (autoReply) {
+    return api.sendMessage(await buildReply(api, event, autoReply), threadID);
+  }
+
+  // ============ FLIRT FALLBACK ============
+  if (hasFlirt(txt)) {
+    return api.sendMessage(await buildReply(api, event, rand(FLIRT_REPLIES)), threadID);
+  }
+
+  // ============ SILENT IGNORE ============
   return;
 }
 
@@ -891,20 +1165,47 @@ async function handleNicknameChange(api, event) {
   }
 }
 
+// ============ USER JOINED — WELCOME ============
 async function handleUserJoined(api, event) {
   const { threadID, logMessageData } = event;
   const added = logMessageData?.addedParticipants || [];
   const locks = groupLocks[threadID] || {};
+
   for (const p of added) {
-    if (String(p.userFbId) === String(botID)) {
+    const uid = String(p.userFbId);
+
+    // Bot khud add hua
+    if (uid === String(botID)) {
       try { await api.changeNickname(BOT_NAME, threadID, botID); } catch {}
       await api.sendMessage(STARTUP_MSG, threadID);
-    } else {
-      const locked = locks.nicknames?.[p.userFbId];
-      if (locked) {
-        try { await api.changeNickname(locked, threadID, p.userFbId); } catch {}
-      }
+      continue;
     }
+
+    // Naya member — welcome + nick lock
+    let name = 'User';
+    try {
+      const u = await api.getUserInfo(uid);
+      name = u?.[uid]?.name || name;
+    } catch {}
+
+    // Nick lock apply
+    const locked = locks.nicknames?.[uid];
+    if (locked) {
+      try { await api.changeNickname(locked, threadID, uid); } catch {}
+    }
+
+    // Welcome message bhejo
+    try {
+      const wmsg = welcomeMsg(name, threadID);
+      await api.sendMessage({
+        body: wmsg + SIGNATURE,
+        mentions: [{ tag: `@${name}`, id: uid }]
+      }, threadID);
+    } catch (e) {
+      emitLog('welcome err: ' + e.message, true);
+    }
+
+    await new Promise(r => setTimeout(r, 1000));
   }
 }
 
@@ -914,12 +1215,10 @@ app.use(bodyParser.json({ limit: '10mb' }));
 app.use(express.static('public'));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-// ============ /configure — C3C + Cookies dono ============
 app.post('/configure', (req, res) => {
   try {
     let { cookies, cookieString, adminID: aID, prefix: pfx, botID: bID, mode } = req.body;
 
-    // ---- C3C array mode ----
     if (mode === 'c3c' || (cookies && !cookieString)) {
       if (typeof cookies === 'string') {
         try { cookies = JSON.parse(cookies); } catch (e) {
@@ -930,13 +1229,12 @@ app.post('/configure', (req, res) => {
         return res.status(400).send('❌ Invalid C3C array');
       emitLog(`🍪 C3C mode — ${cookies.length} entries`);
     }
-    // ---- Raw cookie string mode ----
     else if (mode === 'cookies' || cookieString) {
       if (!cookieString || typeof cookieString !== 'string')
         return res.status(400).send('❌ Cookies string required');
       cookies = cookieStringToAppState(cookieString);
       if (!cookies.length)
-        return res.status(400).send('❌ Cookies parse fail — format galat hai');
+        return res.status(400).send('❌ Cookies parse fail');
       const keys = cookies.map(c => c.key);
       if (!keys.includes('c_user') || !keys.includes('xs'))
         return res.status(400).send('❌ Cookies me c_user aur xs hona zaroori hai');
@@ -962,30 +1260,18 @@ app.post('/configure', (req, res) => {
   }
 });
 
-// ================= STOP BOT =================
 app.post('/stop', (req, res) => {
   try {
-    if (!botAPI && isStopped) {
-      return res.send('⚠️ Bot pehle se band hai.');
-    }
+    if (!botAPI && isStopped) return res.send('⚠️ Bot pehle se band hai.');
     emitLog('🛑 Stopping bot...');
     isStopped = true;
     retryCount = 0;
-
     try { botAPI && botAPI.stopListening && botAPI.stopListening(); } catch (e) {}
     try { botAPI && botAPI.logout && botAPI.logout(() => {}); } catch (e) {}
-
-    botAPI = null;
-    botID = null;
-    currentCookies = null;
-    userData = {};
-    lastReply = {};
-    groupLocks = {};
-    spamCount = {};
-
+    botAPI = null; botID = null; currentCookies = null;
+    userData = {}; lastReply = {}; groupLocks = {}; spamCount = {};
     io.emit('bot-stopped', {});
     io.emit('botlog', '🛑 Bot stopped successfully.');
-
     res.send('🛑 Bot stopped.');
   } catch (e) {
     emitLog('Stop error: ' + e.message, true);
