@@ -1,18 +1,16 @@
 {
-  "name": "rk-raja-masti-bot",
-  "version": "1.0.0",
-  "description": "RK RAJA MASTI BOT - Facebook Messenger Bot Dashboard",
+  "name": "rk-raja-bot",
+  "version": "13.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
-  "engines": {
-    "node": ">=18"
-  },
+  "engines": { "node": ">=18.0.0" },
   "dependencies": {
-    "express": "^4.21.2",
-    "body-parser": "^1.20.3",
-    "socket.io": "^4.8.1",
-    "ws3-fca": "latest"
+    "body-parser": "^1.20.2",
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5",
+    "ws3-fca": "^3.5.2",
+    "@dongdev/fca-unofficial": "^4.0.3"
   }
 }
