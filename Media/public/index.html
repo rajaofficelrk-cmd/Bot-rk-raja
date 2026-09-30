@@ -12,7 +12,7 @@
   header .tag{font-size:.75rem;color:#fde68a;background:rgba(0,0,0,.25);padding:4px 10px;border-radius:20px}
   .container{max-width:850px;margin:24px auto;padding:0 16px}
   .card{background:#161628;border:1px solid #2a2a44;border-radius:14px;padding:20px;margin-bottom:20px;box-shadow:0 6px 24px rgba(0,0,0,.5)}
-  .card h2{font-size:1.05rem;color:#c4b5fd;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+  .card h2{font-size:1.05rem;color:#c4b5fd;margin-bottom:16px;display:flex;align-items:center;gap:8px;justify-content:space-between}
   label{display:block;font-size:.85rem;color:#a78bfa;font-weight:600;margin-bottom:6px;margin-top:12px}
   input[type=text],textarea{width:100%;padding:10px 12px;background:#0b0b16;border:1px solid #2a2a44;border-radius:8px;color:#e5e7eb;font-size:.9rem;outline:none;transition:.2s}
   input[type=text]:focus,textarea:focus{border-color:#a78bfa;box-shadow:0 0 0 3px rgba(167,139,250,.15)}
@@ -33,36 +33,41 @@
   button:disabled{opacity:.5;cursor:not-allowed}
   .btn-start{background:linear-gradient(135deg,#7c3aed,#ec4899);width:100%}
   .btn-stop{background:linear-gradient(135deg,#dc2626,#f97316);width:100%}
+  .btn-clear{background:linear-gradient(135deg,#0891b2,#06b6d4);padding:6px 12px;font-size:.75rem;border-radius:6px}
   .btn-row{display:flex;gap:10px;margin-top:18px}
-  #log{background:#06060f;border:1px solid #2a2a44;border-radius:10px;padding:12px;height:300px;overflow-y:auto;font-family:'Courier New',monospace;font-size:.78rem;line-height:1.5;color:#9ca3af;white-space:pre-wrap;word-break:break-all}
+  #log{background:#06060f;border:1px solid #2a2a44;border-radius:10px;padding:12px;height:320px;overflow-y:auto;font-family:'Courier New',monospace;font-size:.78rem;line-height:1.5;color:#9ca3af;white-space:pre-wrap;word-break:break-all}
   .log-err{color:#f87171}
   .log-ok{color:#34d399}
+  .log-info{color:#60a5fa}
   .status{display:inline-block;padding:4px 12px;border-radius:20px;font-size:.72rem;font-weight:700;margin-left:8px}
   .status.on{background:#065f46;color:#6ee7b7}
   .status.off{background:#7f1d1d;color:#fca5a5}
+  .status.starting{background:#78350f;color:#fcd34d}
   #msg{margin-top:10px;font-size:.85rem;color:#fbbf24;text-align:center;min-height:18px}
   .footer{text-align:center;color:#6b7280;font-size:.75rem;margin-top:20px}
   .hint{font-size:.72rem;color:#6b7280;margin-top:4px}
+  .stats{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:.75rem}
+  .stats span{background:#0b0b16;padding:6px 10px;border-radius:6px;color:#a78bfa}
 </style>
 </head>
 <body>
 
 <header>
   <h1>👑 RK RAJA XWD</h1>
-  <span class="tag">MASTI BOT v16</span>
+  <span class="tag">MASTI BOT v18</span>
 </header>
 
 <div class="container">
 
-  <!-- ================= CONFIG CARD ================= -->
+  <!-- CONFIG CARD -->
   <div class="card">
     <h2>⚙️ Bot Configuration</h2>
 
-    <label>🆔 Admin ID</label>
+    <label>🆔 Admin ID (Facebook numeric ID)</label>
     <input type="text" id="adminID" placeholder="100012345678901" />
 
-    <label>🤖 Bot UID (optional)</label>
-    <input type="text" id="botID" placeholder="auto detect on login" />
+    <label>🤖 Bot UID (optional — auto detect on login)</label>
+    <input type="text" id="botID" placeholder="Bot ka Facebook UID paste karo" />
 
     <label>🔐 Login Mode</label>
     <div class="prefix-group">
@@ -85,6 +90,7 @@
     <div id="rawSection" style="display:none">
       <label>📝 Raw Cookie String</label>
       <textarea id="rawCookies" placeholder='c_user=1000123; xs=abc123; datr=xyz; sb=abc; fr=xyz'></textarea>
+      <div class="hint">Browser DevTools → Application → Cookies se copy karo</div>
     </div>
 
     <label>🔣 Prefix</label>
@@ -102,7 +108,7 @@
     <div id="msg"></div>
   </div>
 
-  <!-- ================= PHOTO UPLOAD CARD ================= -->
+  <!-- PHOTO UPLOAD CARD -->
   <div class="card">
     <h2>📸 Bot Photo (Announcement Me Jayegi)</h2>
     
@@ -118,7 +124,7 @@
         </p>
         <input type="file" id="photoFile" accept="image/*" 
                style="color:#e5e7eb;font-size:.85rem;width:100%" />
-        <div style="margin-top:8px;display:flex;gap:8px">
+        <div style="margin-top:8px">
           <button id="photoRemove" 
                   style="padding:8px 14px;font-size:.8rem;background:linear-gradient(135deg,#dc2626,#f97316);width:auto;border-radius:6px">
             🗑️ Remove
@@ -130,10 +136,19 @@
     <div id="photoStatus" style="margin-top:12px;font-size:.85rem;color:#fbbf24;text-align:center;min-height:18px"></div>
   </div>
 
-  <!-- ================= LIVE LOGS ================= -->
+  <!-- LIVE LOGS CARD -->
   <div class="card">
-    <h2>📊 Live Logs <span id="status" class="status off">Not Started</span></h2>
+    <h2>
+      <span>📊 Live Logs <span id="status" class="status off">Not Started</span></span>
+      <button class="btn-clear" onclick="clearLogs()">🗑️ Clear</button>
+    </h2>
     <div id="log"></div>
+    <div class="stats">
+      <span id="stat-msg">💬 0</span>
+      <span id="stat-groups">👥 0</span>
+      <span id="stat-photo">📸 ?</span>
+      <span id="stat-uptime">⏱ 0s</span>
+    </div>
   </div>
 
   <div class="footer">© RK RAJA XWD — Made with 💜</div>
@@ -142,7 +157,7 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
   // ================= SOCKET =================
-  const socket = io();
+  const socket = io({ reconnection: true, reconnectionDelay: 2000 });
   const logEl = document.getElementById('log');
   const statusEl = document.getElementById('status');
   const msgEl = document.getElementById('msg');
@@ -155,6 +170,10 @@
   const c3cSection = document.getElementById('c3cSection');
   const rawSection = document.getElementById('rawSection');
 
+  let startTime = null;
+  let msgCount = 0;
+  let groupCount = 0;
+
   // ================= MODE TOGGLE =================
   document.querySelectorAll('input[name=mode]').forEach(r => {
     r.addEventListener('change', () => {
@@ -165,29 +184,42 @@
   });
 
   // ================= SOCKET EVENTS =================
-  socket.on('connect', () => addLog('Dashboard connected', 'ok'));
+  socket.on('connect', () => {
+    addLog('✅ Dashboard connected', 'ok');
+  });
+
+  socket.on('disconnect', () => {
+    addLog('⚠️ Dashboard disconnected — reconnecting...', 'err');
+  });
 
   socket.on('log', d => {
     if (!d || !d.message) return;
-    addLog(d.message, d.message.includes('ERROR') || d.message.includes('❌') ? 'err' : '');
+    const isErr = d.message.includes('ERROR') || d.message.includes('❌') || d.message.includes('⚠️');
+    const isOk = d.message.includes('✅') || d.message.includes('🎉') || d.message.includes('📢');
+    addLog(d.message, isErr ? 'err' : (isOk ? 'ok' : ''));
+
     if (d.message.includes('Bot logged in')) {
       statusEl.textContent = 'Running';
       statusEl.className = 'status on';
+      startTime = Date.now();
     }
     if (d.message.includes('Bot stopped')) {
       statusEl.textContent = 'Stopped';
       statusEl.className = 'status off';
     }
-    if (d.message.includes('Announcement complete')) {
-      addLog('━━━━━━━━━━━━━━━━━━━━━━━━━', 'ok');
+    if (d.message.includes('Sent to') || d.message.includes('✅ Sent')) {
+      msgCount++;
+      document.getElementById('stat-msg').textContent = '💬 ' + msgCount;
     }
-  });
-
-  socket.on('botlog', msg => {
-    addLog(msg, msg.includes('ERROR') ? 'err' : '');
-    if (msg.includes('Bot logged in')) {
-      statusEl.textContent = 'Running';
-      statusEl.className = 'status on';
+    if (d.message.includes('Group:') || d.message.includes('Total')) {
+      const m = d.message.match(/(\d+)/);
+      if (m) { groupCount = parseInt(m[1]); document.getElementById('stat-groups').textContent = '👥 ' + groupCount; }
+    }
+    if (d.message.includes('Photo uploaded') || d.message.includes('Exists: true')) {
+      document.getElementById('stat-photo').textContent = '📸 ✅';
+    }
+    if (d.message.includes('Exists: false')) {
+      document.getElementById('stat-photo').textContent = '📸 ❌';
     }
   });
 
@@ -197,30 +229,49 @@
       statusEl.className = 'status on';
     }
     if (d.botID && !botIDInput.value) botIDInput.value = d.botID;
+    if (d.groups) { groupCount = d.groups; document.getElementById('stat-groups').textContent = '👥 ' + d.groups; }
+    if (d.messages) { msgCount = d.messages; document.getElementById('stat-msg').textContent = '💬 ' + d.messages; }
   });
 
   socket.on('bot-ready', data => {
     if (data && data.botID) {
       if (!botIDInput.value) botIDInput.value = data.botID;
-      addLog('Bot ID: ' + data.botID, 'ok');
+      addLog('🤖 Bot ID: ' + data.botID, 'ok');
     }
   });
 
   socket.on('bot-stopped', () => {
     statusEl.textContent = 'Stopped';
     statusEl.className = 'status off';
-    addLog('Bot stopped', 'err');
+    addLog('🛑 Bot stopped', 'err');
   });
 
-  // ================= LOG FUNCTION =================
+  // ================= LOG FUNCTIONS =================
   function addLog(text, cls='') {
     const d = document.createElement('div');
     if (cls === 'err') d.classList.add('log-err');
     if (cls === 'ok') d.classList.add('log-ok');
+    if (cls === 'info') d.classList.add('log-info');
     d.textContent = text;
     logEl.appendChild(d);
     logEl.scrollTop = logEl.scrollHeight;
+    // Limit 500 lines
+    while (logEl.children.length > 500) logEl.removeChild(logEl.firstChild);
   }
+
+  function clearLogs() {
+    logEl.innerHTML = '';
+    addLog('🗑️ Logs cleared', 'info');
+  }
+  window.clearLogs = clearLogs;
+
+  // ================= UPTIME =================
+  setInterval(() => {
+    if (startTime) {
+      const s = Math.floor((Date.now() - startTime) / 1000);
+      document.getElementById('stat-uptime').textContent = '⏱ ' + s + 's';
+    }
+  }, 1000);
 
   // ================= C3C FILE UPLOAD =================
   fileDrop.addEventListener('click', () => fileInput.click());
@@ -240,9 +291,9 @@
     r.onload = ev => {
       cookiesTA.value = ev.target.result;
       fileName.textContent = '✅ ' + file.name + ' (' + ev.target.result.length + ' chars)';
-      addLog('C3C loaded: ' + file.name, 'ok');
+      addLog('📁 C3C loaded: ' + file.name, 'ok');
     };
-    r.onerror = () => addLog('File read error', 'err');
+    r.onerror = () => addLog('❌ File read error', 'err');
     r.readAsText(file);
   }
 
@@ -254,6 +305,7 @@
     const prefix = document.querySelector('input[name=pfx]:checked').value;
 
     if (!adminID) return alert('❌ Admin ID daalo!');
+    if (!/^\d+$/.test(adminID)) return alert('❌ Admin ID sirf numbers hona chahiye!');
 
     const payload = { adminID, botID: botID || null, mode, prefix };
 
@@ -272,8 +324,10 @@
       payload.cookieString = raw;
     }
 
-    msgEl.textContent = '⏳ Starting...';
-    addLog('Sending config to server...', 'ok');
+    msgEl.textContent = '⏳ Starting bot...';
+    statusEl.textContent = 'Starting...';
+    statusEl.className = 'status starting';
+    addLog('🚀 Sending config to server...', 'info');
 
     try {
       const res = await fetch('/configure', {
@@ -282,13 +336,13 @@
         body: JSON.stringify(payload)
       });
       const t = await res.text();
-      msgEl.textContent = t;
-      addLog(t, 'ok');
-      statusEl.textContent = 'Starting...';
-      statusEl.className = 'status off';
+      msgEl.textContent = '✅ ' + t;
+      addLog('✅ ' + t, 'ok');
     } catch(e) {
-      msgEl.textContent = 'Error: ' + e.message;
-      addLog('Error: ' + e.message, 'err');
+      msgEl.textContent = '❌ Error: ' + e.message;
+      addLog('❌ Error: ' + e.message, 'err');
+      statusEl.textContent = 'Error';
+      statusEl.className = 'status off';
     }
   });
 
@@ -299,7 +353,7 @@
     try {
       await fetch('/stop', { method: 'POST' });
       msgEl.textContent = '🛑 Stopped';
-      addLog('Bot stopped', 'err');
+      addLog('🛑 Bot stopped', 'err');
       statusEl.textContent = 'Stopped';
       statusEl.className = 'status off';
     } catch(e) {
@@ -321,9 +375,11 @@
           photoStatus.textContent = `✅ Current photo: ${d.sizeKB} KB`;
           photoStatus.style.color = '#34d399';
           photoPreview.src = '/photo-preview?t=' + Date.now();
+          document.getElementById('stat-photo').textContent = '📸 ✅ ' + d.sizeKB + 'KB';
         } else {
           photoStatus.textContent = '⚠️ Koi photo set nahi hai';
           photoStatus.style.color = '#fbbf24';
+          document.getElementById('stat-photo').textContent = '📸 ❌';
         }
       })
       .catch(() => {});
@@ -356,6 +412,7 @@
           photoStatus.style.color = '#34d399';
           photoPreview.src = '/photo-preview?t=' + Date.now();
           addLog('📸 Photo uploaded: ' + data.sizeKB + ' KB', 'ok');
+          document.getElementById('stat-photo').textContent = '📸 ✅ ' + data.sizeKB + 'KB';
         } else {
           photoStatus.textContent = '❌ ' + data.error;
           photoStatus.style.color = '#f87171';
@@ -376,12 +433,23 @@
       photoStatus.style.color = '#fbbf24';
       photoPreview.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="90" height="90"><circle cx="45" cy="45" r="42" fill="#2a2a44"/><text x="45" y="55" text-anchor="middle" fill="#a78bfa" font-size="36">📸</text></svg>';
       addLog('🗑️ Photo removed', 'err');
+      document.getElementById('stat-photo').textContent = '📸 ❌';
     } catch(e) { alert('Error: ' + e.message); }
   });
 
-  // Initial check
-  setTimeout(refreshPhotoStatus, 500);
+  // ================= INITIAL LOAD =================
+  setTimeout(refreshPhotoStatus, 300);
   setInterval(refreshPhotoStatus, 30000);
+
+  // Status check on load
+  fetch('/status').then(r => r.json()).then(d => {
+    if (d.running) {
+      statusEl.textContent = 'Running';
+      statusEl.className = 'status on';
+    }
+    if (d.botID && !botIDInput.value) botIDInput.value = d.botID;
+    if (d.adminID) document.getElementById('adminID').value = d.adminID;
+  }).catch(() => {});
 </script>
 </body>
 </html>
