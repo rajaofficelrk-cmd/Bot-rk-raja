@@ -10,7 +10,7 @@
   header{background:linear-gradient(135deg,#7c3aed,#ec4899);padding:18px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 20px rgba(236,72,153,.35);position:sticky;top:0;z-index:10}
   header h1{font-size:1.35rem;color:#fff;letter-spacing:1px}
   header .tag{font-size:.75rem;color:#fde68a;background:rgba(0,0,0,.25);padding:4px 10px;border-radius:20px}
-  .container{max-width:850px;margin:24px auto;padding:0 16px}
+  .container{max-width:900px;margin:24px auto;padding:0 16px}
   .card{background:#161628;border:1px solid #2a2a44;border-radius:14px;padding:20px;margin-bottom:20px;box-shadow:0 6px 24px rgba(0,0,0,.5)}
   .card h2{font-size:1.05rem;color:#c4b5fd;margin-bottom:16px;display:flex;align-items:center;gap:8px;justify-content:space-between}
   label{display:block;font-size:.85rem;color:#a78bfa;font-weight:600;margin-bottom:6px;margin-top:12px}
@@ -33,9 +33,9 @@
   button:disabled{opacity:.5;cursor:not-allowed}
   .btn-start{background:linear-gradient(135deg,#7c3aed,#ec4899);width:100%}
   .btn-stop{background:linear-gradient(135deg,#dc2626,#f97316);width:100%}
-  .btn-clear{background:linear-gradient(135deg,#0891b2,#06b6d4);padding:6px 12px;font-size:.75rem;border-radius:6px}
+  .btn-clear{background:linear-gradient(135deg,#0891b2,#06b6d4);padding:6px 14px;font-size:.75rem;border-radius:6px}
   .btn-row{display:flex;gap:10px;margin-top:18px}
-  #log{background:#06060f;border:1px solid #2a2a44;border-radius:10px;padding:12px;height:320px;overflow-y:auto;font-family:'Courier New',monospace;font-size:.78rem;line-height:1.5;color:#9ca3af;white-space:pre-wrap;word-break:break-all}
+  #log{background:#06060f;border:1px solid #2a2a44;border-radius:10px;padding:12px;height:340px;overflow-y:auto;font-family:'Courier New',monospace;font-size:.78rem;line-height:1.5;color:#9ca3af;white-space:pre-wrap;word-break:break-all}
   .log-err{color:#f87171}
   .log-ok{color:#34d399}
   .log-info{color:#60a5fa}
@@ -46,15 +46,15 @@
   #msg{margin-top:10px;font-size:.85rem;color:#fbbf24;text-align:center;min-height:18px}
   .footer{text-align:center;color:#6b7280;font-size:.75rem;margin-top:20px}
   .hint{font-size:.72rem;color:#6b7280;margin-top:4px}
-  .stats{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:.75rem}
-  .stats span{background:#0b0b16;padding:6px 10px;border-radius:6px;color:#a78bfa}
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;font-size:.75rem}
+  .stats span{background:#0b0b16;padding:6px 10px;border-radius:6px;color:#a78bfa;border:1px solid #2a2a44}
 </style>
 </head>
 <body>
 
 <header>
   <h1>👑 RK RAJA XWD</h1>
-  <span class="tag">MASTI BOT v18</span>
+  <span class="tag">MASTI BOT v20</span>
 </header>
 
 <div class="container">
@@ -66,8 +66,8 @@
     <label>🆔 Admin ID (Facebook numeric ID)</label>
     <input type="text" id="adminID" placeholder="100012345678901" />
 
-    <label>🤖 Bot UID (optional — auto detect on login)</label>
-    <input type="text" id="botID" placeholder="Bot ka Facebook UID paste karo" />
+    <label>🤖 Bot UID (optional — auto detect)</label>
+    <input type="text" id="botID" placeholder="Bot ka Facebook UID" />
 
     <label>🔐 Login Mode</label>
     <div class="prefix-group">
@@ -144,8 +144,8 @@
     </h2>
     <div id="log"></div>
     <div class="stats">
-      <span id="stat-msg">💬 0</span>
-      <span id="stat-groups">👥 0</span>
+      <span id="stat-msg">💬 0 msgs</span>
+      <span id="stat-groups">👥 0 groups</span>
       <span id="stat-photo">📸 ?</span>
       <span id="stat-uptime">⏱ 0s</span>
     </div>
@@ -189,36 +189,40 @@
   });
 
   socket.on('disconnect', () => {
-    addLog('⚠️ Dashboard disconnected — reconnecting...', 'err');
+    addLog('⚠️ Disconnected — reconnecting...', 'err');
   });
 
   socket.on('log', d => {
     if (!d || !d.message) return;
-    const isErr = d.message.includes('ERROR') || d.message.includes('❌') || d.message.includes('⚠️');
-    const isOk = d.message.includes('✅') || d.message.includes('🎉') || d.message.includes('📢');
-    addLog(d.message, isErr ? 'err' : (isOk ? 'ok' : ''));
+    const m = d.message;
+    const isErr = m.includes('ERROR') || m.includes('❌') || m.includes('⚠️');
+    const isOk = m.includes('✅') || m.includes('🎉') || m.includes('📢') || m.includes('👋');
+    addLog(m, isErr ? 'err' : (isOk ? 'ok' : ''));
 
-    if (d.message.includes('Bot logged in')) {
+    if (m.includes('Bot logged in')) {
       statusEl.textContent = 'Running';
       statusEl.className = 'status on';
       startTime = Date.now();
     }
-    if (d.message.includes('Bot stopped')) {
+    if (m.includes('Bot stopped')) {
       statusEl.textContent = 'Stopped';
       statusEl.className = 'status off';
     }
-    if (d.message.includes('Sent to') || d.message.includes('✅ Sent')) {
+    if (m.includes('✅ Sent') || m.includes('Sent to')) {
       msgCount++;
-      document.getElementById('stat-msg').textContent = '💬 ' + msgCount;
+      document.getElementById('stat-msg').textContent = '💬 ' + msgCount + ' msgs';
     }
-    if (d.message.includes('Group:') || d.message.includes('Total')) {
-      const m = d.message.match(/(\d+)/);
-      if (m) { groupCount = parseInt(m[1]); document.getElementById('stat-groups').textContent = '👥 ' + groupCount; }
+    if (m.includes('Total ') && m.includes('groups')) {
+      const num = m.match(/Total\s+(\d+)/);
+      if (num) {
+        groupCount = parseInt(num[1]);
+        document.getElementById('stat-groups').textContent = '👥 ' + groupCount + ' groups';
+      }
     }
-    if (d.message.includes('Photo uploaded') || d.message.includes('Exists: true')) {
+    if (m.includes('Exists: true') || m.includes('Photo uploaded')) {
       document.getElementById('stat-photo').textContent = '📸 ✅';
     }
-    if (d.message.includes('Exists: false')) {
+    if (m.includes('Exists: false')) {
       document.getElementById('stat-photo').textContent = '📸 ❌';
     }
   });
@@ -229,8 +233,8 @@
       statusEl.className = 'status on';
     }
     if (d.botID && !botIDInput.value) botIDInput.value = d.botID;
-    if (d.groups) { groupCount = d.groups; document.getElementById('stat-groups').textContent = '👥 ' + d.groups; }
-    if (d.messages) { msgCount = d.messages; document.getElementById('stat-msg').textContent = '💬 ' + d.messages; }
+    if (d.groups) { groupCount = d.groups; document.getElementById('stat-groups').textContent = '👥 ' + d.groups + ' groups'; }
+    if (d.messages) { msgCount = d.messages; document.getElementById('stat-msg').textContent = '💬 ' + d.messages + ' msgs'; }
   });
 
   socket.on('bot-ready', data => {
@@ -255,7 +259,6 @@
     d.textContent = text;
     logEl.appendChild(d);
     logEl.scrollTop = logEl.scrollHeight;
-    // Limit 500 lines
     while (logEl.children.length > 500) logEl.removeChild(logEl.firstChild);
   }
 
@@ -327,7 +330,7 @@
     msgEl.textContent = '⏳ Starting bot...';
     statusEl.textContent = 'Starting...';
     statusEl.className = 'status starting';
-    addLog('🚀 Sending config to server...', 'info');
+    addLog('🚀 Sending config...', 'info');
 
     try {
       const res = await fetch('/configure', {
@@ -441,14 +444,17 @@
   setTimeout(refreshPhotoStatus, 300);
   setInterval(refreshPhotoStatus, 30000);
 
-  // Status check on load
+  // Status check on page load
   fetch('/status').then(r => r.json()).then(d => {
     if (d.running) {
       statusEl.textContent = 'Running';
       statusEl.className = 'status on';
+      startTime = Date.now();
     }
     if (d.botID && !botIDInput.value) botIDInput.value = d.botID;
     if (d.adminID) document.getElementById('adminID').value = d.adminID;
+    if (d.groups) document.getElementById('stat-groups').textContent = '👥 ' + d.groups + ' groups';
+    if (d.messages) document.getElementById('stat-msg').textContent = '💬 ' + d.messages + ' msgs';
   }).catch(() => {});
 </script>
 </body>
