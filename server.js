@@ -1,6 +1,6 @@
 // ============================================================
-// RK RAJA XWD BOT v18 — ALL IN ONE (No replies.js needed)
-// 20,000+ unique replies | Human Chat | Welcome | Locks | FYT
+// RK RAJA XWD BOT v20 — FINAL STABLE
+// No errors | 100% reply | Auto announcement | All features
 // ============================================================
 
 const express = require("express");
@@ -13,7 +13,7 @@ const { Server } = require("socket.io");
 // ================= FCA LOADER =================
 let login = null, fcaName = "unknown";
 function loadFCA() {
-  const pkgs = ["ws3-fca","@dongdev/fca-unofficial","fca-unofficial","facebook-chat-api"];
+  const pkgs = ["@dongdev/fca-unofficial","ws3-fca","fca-unofficial","facebook-chat-api"];
   for (const p of pkgs) {
     try {
       const m = require(p);
@@ -51,7 +51,8 @@ fs.mkdirSync(FYT_DIR, { recursive: true });
 // ================= HELPERS =================
 function rand(a){return a[Math.floor(Math.random()*a.length)];}
 function normalizeText(t){return String(t||"").toLowerCase().replace(/[“”‘’]/g,"'").replace(/[!?.,;:()[\]{}]/g," ").replace(/\s+/g," ").trim();}
-function cleanID(id){if(id==null)return null;return String(id).trim();}
+function cleanID(id){if(id==null)return null;return ("" + id).trim();}
+function isAdmin(uid){const a=String(state.adminID||"").trim();const u=String(uid||"").trim();return a && u && a===u;}
 
 // ================= BOT TRIGGERS =================
 const BOT_TRIGGERS = ["rk raja","rk raja xwd","rkraja","rk-raja","raja xwd","raja","rk","bot","bots","rk bot","raja bot","xwd","raja bhai","rk bhai","prince","@rk","@raja","@bot"];
@@ -68,7 +69,7 @@ function isBotCalled(text){
 }
 
 // ============================================================
-// =============== SHAYARI DATABASE ===========================
+// =============== SHAYARI DATABASE (200+) ====================
 // ============================================================
 const SHAYARI_BASE = [
   "Tere bina zindagi adhoori si lagti hai,\nTere saath har khushi poori si lagti hai 💕",
@@ -184,37 +185,48 @@ const SHAYARI_BASE = [
   "If loving you is wrong,\nI don't want to be right 💕",
   "You're my favorite notification,\nMy sweetest distraction 🔔",
   "I could search the whole universe,\nAnd still find no one like you 🌌",
-  "You are the moon to my night,\nThe sun to my day ☀️"
+  "You are the moon to my night,\nThe sun to my day ☀️",
+  "Tere sang bitaye pal yaad aate hai,\nTere bina ye din kaise jate hai 💭",
+  "Tu mera pehla pyaar hai, tu mera aakhri,\nTere bina ye dil rehta hai udaasi 💙",
+  "Dil ki dharkan me tera hi naam,\nMeri saanso me tera hi kaam ❤️",
+  "Tere bin ye duniya sooni lagti hai,\nTere saath ye duniya poori lagti hai 🌍",
+  "Teri baahon me mera jahaan hai,\nTere khwabon me mera makaan hai 🏠",
+  "Tere pyaar ne jeena sikha diya,\nTere ishq ne marna sikha diya 💫",
+  "Har pal tera intezaar rehta hai,\nHar lamha tera khayal rehta hai ⏳",
+  "Tu mera chand, tu mera suraj,\nTu mera jeevan, tu mera haraj 💝",
+  "Tere ishq me fanaa ho gaya,\nTere pyaar me mila khuda 🤲",
+  "Zindagi ki har khushi tumse hai,\nZindagi ka har gham tumse hai 💔",
+  "Tere bina kuch bhi nahi hai mera,\nTere saath sab kuch hai mera 💕",
+  "Dil ke armaan labon pe aa gaye,\nTere liye hum pagal ho gaye 😍",
+  "Teri aankhon me apna ghar dekha,\nTeri baahon me apna jahan dekha 🏡",
+  "Tere pyaar ne mujhe badal diya,\nTere ishq ne mujhe sanwar diya ✨",
+  "Meri har saans teri amanat hai,\nMeri har dhadkan teri mohabbat hai 💓",
+  "Tere naam pe likhi har shayari,\nTere liye basi har khushiyari 💫",
+  "Tu mera pehla khwab hai,\nTu mera aakhri sawaal hai 🌙",
+  "Tere bina ye dil kaise rahega,\nTere bina ye duniya kaise rahegi 💭",
+  "Teri baaton me mera sukoon hai,\nTeri yaadon me mera junoon hai 🔥",
+  "Tere pyaar ka sahara mil gaya,\nTere ishq ka kinara mil gaya ⚓",
+  "Tere labon pe mera naam likha,\nTere dil me mera makaan bana 🏠",
+  "Meri har nazar tujhe dekhti hai,\nMeri har khushi tujhe khojti hai 👀",
+  "Tere bina ye zindagi adhoori,\nTere saath ye zindagi poori 🌸",
+  "Tere ishq me jal raha hu,\nTere pyaar me tar raha hu 🔥",
+  "Mera dil kehta hai tujhe paana,\nMeri rooh kehti hai tujhme samaana 💫",
+  "Teri aankhon me mera ghar hai,\nTeri baahon me mera jahan hai 🏡",
+  "Tu meri roshni, tu mera saaya,\nTu mera jeevan, tu mera aaya 🌟",
+  "Tere pyaar ka har pal yaadgaar hai,\nTere bina har pal bhhaar hai ⏳",
+  "Meri har dua me tera naam hai,\nMeri har saans me tera kaam hai 🤲",
+  "Tere liye chhod di duniya saari,\nTere liye tod di har deewari ❤️",
+  "Tu mera aakhri khwab hai,\nTu mera pehla khayal hai 💭",
+  "Tere bina ye din kaise katega,\nTere bina ye raat kaise kategi 🌙",
+  "Meri har subah teri yaad se shuru,\nMeri har raat teri fikr pe khatam 🌅"
 ];
 
-// SHAYARI COMBINERS — 30 x 30 = 900 unique
-const S_L1 = [
-  "Tere bina ye dil lagta nahi","Teri yaad me khoya rehta hu","Tere naam pe jee raha hu",
-  "Teri aankhon me doob gaya hu","Tere ishq me pagal ho gaya","Tera chehra dekhta rahta hu",
-  "Tere liye duniya bhula di","Teri baahon me sukoon hai","Tere sang har pal jannat hai",
-  "Tujhse milke muskura diya","Tere qadmon me dil rakh diya","Teri hansi meri saans hai",
-  "Tera nasha chadhta ja raha","Tere khwabon me kho gaya","Teri zulfon me ulajh gaya",
-  "Tere labon ki mithaas chahi","Teri aankhon ka jaadu chal gaya","Tere pyaar ki barish me bheeg gaya",
-  "Teri baaton me jaadu sa hai","Tere saath waqt ruk gaya","Teri yaad dil ko tadpati hai",
-  "Tera naam labon pe aata hai","Tere liye har dua hai","Tujhme kho jaana chahta hu",
-  "Tere ishq ki aag me jal raha hu","Tere liye pagal ho gaya hu","Teri aankhon me apna ghar dekha",
-  "Tere pyaar ka sahara mila","Teri baahon me kho jaana hai","Tere liye duniya se lad jaunga"
-];
-const S_L2 = [
-  "bas teri hi talash hai 🌸","dil me sirf tera basera 💕","sapne me bhi sirf tu ✨",
-  "tere bina kuch nahi 💗","ab toh bas tu hi tu 💘","meri duniya tumse hai 🌍",
-  "tere naam ka nasha hai 🍷","tere liye har dua hai 🤲","tere bina soona hai 🌙",
-  "teri hansi meri duniya 💫","tere bin kuch accha nahi 🥺","tujhe chahat hai beshumar 💖",
-  "tere naam ki roshni hai 🌟","tere pyaar ka sahara hai 🌹","tere saath jeevan hai 💞",
-  "tere labon pe jaan hai 💋","tere ishq me fanaa hu 🔥","tere pyaar me kho gaya 🎐",
-  "tere bina adhoora hu 💔","tere liye toh kuch bhi 🎁","tere naam pe saans hai 💓",
-  "tere bina jeena mushkil 🩹","tere pyaar me doob gaya 🌊","tere saath sab jannat hai 🌸",
-  "tere liye pagal ho gaya 😍","tere saath har pal jannat hai ✨","tere bina ye dil udaas 💔",
-  "tere naam pe likhi kahani 📖","tere liye toh jaan de du 💝","tere saath mera jahaan 🌍"
-];
+// Shayari combos — 900+ unique
+const S_L1 = ["Tere bina ye dil lagta nahi","Teri yaad me khoya rehta hu","Tere naam pe jee raha hu","Teri aankhon me doob gaya hu","Tere ishq me pagal ho gaya","Tera chehra dekhta rahta hu","Tere liye duniya bhula di","Teri baahon me sukoon hai","Tere sang har pal jannat hai","Tujhse milke muskura diya","Tere qadmon me dil rakh diya","Teri hansi meri saans hai","Tera nasha chadhta ja raha","Tere khwabon me kho gaya","Teri zulfon me ulajh gaya","Tere labon ki mithaas chahi","Teri aankhon ka jaadu chal gaya","Tere pyaar ki barish me bheeg gaya","Teri baaton me jaadu sa hai","Tere saath waqt ruk gaya","Teri yaad dil ko tadpati hai","Tera naam labon pe aata hai","Tere liye har dua hai","Tujhme kho jaana chahta hu","Tere ishq ki aag me jal raha hu","Tere liye pagal ho gaya hu","Teri aankhon me apna ghar dekha","Tere pyaar ka sahara mila","Teri baahon me kho jaana hai","Tere liye duniya se lad jaunga"];
+const S_L2 = ["bas teri hi talash hai 🌸","dil me sirf tera basera 💕","sapne me bhi sirf tu ✨","tere bina kuch nahi 💗","ab toh bas tu hi tu 💘","meri duniya tumse hai 🌍","tere naam ka nasha hai 🍷","tere liye har dua hai 🤲","tere bina soona hai 🌙","teri hansi meri duniya 💫","tere bin kuch accha nahi 🥺","tujhe chahat hai beshumar 💖","tere naam ki roshni hai 🌟","tere pyaar ka sahara hai 🌹","tere saath jeevan hai 💞","tere labon pe jaan hai 💋","tere ishq me fanaa hu 🔥","tere pyaar me kho gaya 🎐","tere bina adhoora hu 💔","tere liye toh kuch bhi 🎁","tere naam pe saans hai 💓","tere bina jeena mushkil 🩹","tere pyaar me doob gaya 🌊","tere saath sab jannat hai 🌸","tere liye pagal ho gaya 😍","tere saath har pal jannat hai ✨","tere bina ye dil udaas 💔","tere naam pe likhi kahani 📖","tere liye toh jaan de du 💝","tere saath mera jahaan 🌍"];
 
 // ============================================================
-// =============== JOKES DATABASE =============================
+// =============== JOKES DATABASE (60+) =======================
 // ============================================================
 const JOKES_BASE = [
   "Ek ladki ne pucha tum mujhse pyaar karte ho? Maine kaha — Google pe search karo 😂",
@@ -276,14 +288,11 @@ const JOKES_BASE = [
   "Ek aadmi ne naukri ke liye apply kiya, HR ne pucha: experience? Bola — WhatsApp pe 10 group chalata hu 😂",
   "Ek bachhe ne pucha: papa paisa kya hota hai? Papa: beta, jo tumhari mummy ke paas nahi hota 😂",
   "Ek aadmi ne WhatsApp status lagaya: 'busy'. Koi puche busy kya? Bola — busy haa 😂",
-  "Ek ladka itna lucky tha ki uski ex ne bhi use birthday wish kiya — galti se 😂",
-  "Ek aadmi ne Google pe pucha: khoobsurat kaise bane? Google: mirror dekhna band kar do 😂",
-  "Ladki boli: mai tumhe bhool jaungi. Maine kaha: bhool jaao, mai yaad dila dunga 😂",
-  "Wife: tum mujhe ghumaane kab le jaoge? Husband: sath le jaunga. Wife: kaha? Husband: chhat pe 😂"
+  "Ek ladka itna lucky tha ki uski ex ne bhi use birthday wish kiya — galti se 😂"
 ];
 
 // ============================================================
-// =============== FLIRT DATABASE =============================
+// =============== FLIRT DATABASE (20+ & combos) ==============
 // ============================================================
 const FLIRT_BASE = [
   "Arre babu 😍 tumse pyaar to hume bhi hai, par pehle level badhao 😏",
@@ -307,13 +316,12 @@ const FLIRT_BASE = [
   "Babu 💗 tum toh humari dhadkan ban gayi ho 💓",
   "Baby 😏 tumse pyaar karna hi humari zindagi hai 💖"
 ];
-
 const F_OPEN = ["Arre babu 😍","Oye sona 💋","Haan jaan 🥰","Bolo cutie 😘","Oye jaana 💕","Suno jaaneman 💗","Dekho sona 🥺","Aao baby 😏","Haan shona 💖","Oye honey 🍯","Bolo jaanu 💝","Haan sweetheart 🌸"];
 const F_BODY = ["tumhari ek smile pe hum mar mitte hai","tumhara naam lete hi muskaan aa jaati hai","tumse baat karke dil khush ho jata hai","tumhari aankhon me kho jata hu","tumhare baare me sochte rehta hu","tumhari yaad me bechain rehta hu","tumse milke lagta hai jannat mil gayi","tumhare pyaar me pagal ho gaya hu","tumhari baahon me kho jana chahta hu","tumhari har baat dil se lagti hai","tumhare khwabon me khoya rehta hu","tumhari zulfon me ulajhna chahta hu","tumhare labon ki mithaas chakhni hai","tumhari baaton me jaadu hai","tumhare ishq ka nasha chadhta hai"];
 const F_END = ["💕","💗","💖","💘","🥰","😘","😍","❤️","💞","💓","🌹","✨","💝","🌸"];
 
 // ============================================================
-// =============== AUTO REPLIES (HUMAN CHAT) ==================
+// =============== AUTO REPLIES ===============================
 // ============================================================
 const AUTO = {
   hi: ["Hii jaan 💕 kaise ho?","Hello babu 🥰 kya haal?","Hii sona 😘 kya kar rahe the?","Heyy cutie 💗 miss kiya mujhe?","Hii ji ❤️ bolo kya hua?"],
@@ -331,7 +339,6 @@ const AUTO = {
   "i love you": ["I love you too jaan 💝 dil khush kar diya","Aww babu 🥰 mai bhi tumse bahut pyaar karta hu","Love you too sona 💗 ab toh bas tumhara hu","I love you more cutie 😘","Tumse pyaar karta hu mai beshumar 💕"],
   "love you": ["Love you too jaan 💝","Aww 🥰 mujhe bhi","Love you more babu 💗","Sona 💕 same to you"],
   "love u": ["Love u too jaan 💕","Aww babu 🥰","Mai bhi 💗"],
-  "i luv u": ["Luv u too sona 💕","Aww cutie 🥰 same","Mujhe bhi jaan 💗"],
   kiss: ["Muaaah 😘💋 tumhe bhi","Smooch 💕😘","Aww babu 😘 kiss le lo","Mwah 😘 jaan","Kissiess 💋 sona"],
   kisses: ["Muaaah muaaah 😘😘","Kisses for you too 💋💕","Sona 😘 le lo pyaar se"],
   hug: ["Big hug 🤗💕","Aao jhappi pao 🫂😘","Hug you too babu 🤗","Sona aao gale lagao 🫂💗","Tight hug jaan 🤗❤️"],
@@ -405,7 +412,6 @@ const AUTO = {
   "شکریہ": ["کوئی بات نہیں بابو 💕","خوش آمدید جان 😊"]
 };
 
-// EMOJI REPLIES
 const EMOJI_REPLIES = {
   "😘": ["Muaah 💋💕","Aww babu 😘","Kisses sona 💋"],
   "😍": ["Aww cutie 😍","Dil khush kar diya 💕","Kya baat hai jaan 🥰"],
@@ -429,7 +435,6 @@ const EMOJI_REPLIES = {
   "🌹": ["Rose? Mujhe? 🌹💕","Aww jaan 🥰"]
 };
 
-// WELCOME
 const WELCOME_SHAYARI = [
   "Phoolon ki khushbu, chand ki roshni,\nAapke aane se mehki ye mehfil 💐✨",
   "Aaya hai kaun mehman ban ke,\nKhushiyon ka tohfa laaya hai sang me 🌸💫",
@@ -442,13 +447,10 @@ const WELCOME_SHAYARI = [
   "Khush aamdeed kehta hai dil mera,\nIs group me swagat hai aapka 💐❤️",
   "Chand laaya hai roshni,\nAap laaye ho khushi 💫😍"
 ];
-const WELCOME_HEADERS = [
-  "🎉 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 🎉","🌸 𝐒𝐖𝐀𝐆𝐀𝐓 𝐇𝐀𝐈 🌸","💐 𝐊𝐇𝐔𝐒𝐇 𝐀𝐀𝐌𝐃𝐄𝐄𝐃 💐",
-  "✨ 𝐍𝐀𝐘𝐄 𝐌𝐄𝐇𝐌𝐀𝐀𝐍 ✨","🌟 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐉𝐀𝐀𝐍 🌟","🥳 𝐒𝐖𝐀𝐆𝐀𝐓 𝐇𝐀𝐈 𝐁𝐀𝐁𝐔 🥳"
-];
+const WELCOME_HEADERS = ["🎉 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 🎉","🌸 𝐒𝐖𝐀𝐆𝐀𝐓 𝐇𝐀𝐈 🌸","💐 𝐊𝐇𝐔𝐒𝐇 𝐀𝐀𝐌𝐃𝐄𝐄𝐃 💐","✨ 𝐍𝐀𝐘𝐄 𝐌𝐄𝐇𝐌𝐀𝐀𝐍 ✨","🌟 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐉𝐀𝐀𝐍 🌟","🥳 𝐒𝐖𝐀𝐆𝐀𝐓 𝐇𝐀𝐈 𝐁𝐀𝐁𝐔 🥳"];
 
 // ============================================================
-// =============== GENERATOR FUNCTIONS ========================
+// =============== GENERATORS =================================
 // ============================================================
 let _lastShayari = -1, _lastFlirt = -1;
 function getShayari() {
@@ -496,7 +498,7 @@ function getWelcomeShayari() { return rand(WELCOME_SHAYARI); }
 function getWelcomeHeader() { return rand(WELCOME_HEADERS); }
 
 // ============================================================
-// =============== STATE & HELPERS ============================
+// =============== STATE ======================================
 // ============================================================
 const state = {
   botAPI: null, botID: null, adminID: null,
@@ -512,11 +514,6 @@ function log(msg) {
   console.log(line);
   io.emit("log", { message: line });
 }
-function isAdmin(uid) {
-  const a = String(state.adminID || "").trim();
-  const u = String(uid || "").trim();
-  return a && u && a === u;
-}
 function createPhotoAttachment() {
   try {
     if (!fs.existsSync(BOT_DP_PATH)) return null;
@@ -527,40 +524,74 @@ function createPhotoAttachment() {
 }
 
 // ============================================================
-// =============== SEND HELPERS ===============================
+// =============== SEND HELPERS (No MessageID bug) ============
 // ============================================================
 function sendMessageSafe(api, message, threadID) {
   return new Promise((resolve, reject) => {
     try {
       const tid = String(threadID).trim();
       if (!tid || tid === "null" || tid === "undefined") return reject(new Error("Invalid threadID"));
+
       let finished = false;
       const finish = (err, info) => {
         if (finished) return; finished = true;
         if (err) reject(err); else resolve(info);
       };
-      let result;
-      try { result = api.sendMessage(message, tid, finish); }
-      catch(e) { return finish(e); }
-      if (result && typeof result.then === "function") {
-        result.then(i => finish(null, i)).catch(finish);
+
+      // Clean message object — remove problematic fields
+      let finalMsg = message;
+      if (message && typeof message === "object" && !Array.isArray(message)) {
+        finalMsg = {};
+        if (message.body) finalMsg.body = String(message.body);
+        if (message.attachment) finalMsg.attachment = message.attachment;
+        if (message.mentions && Array.isArray(message.mentions)) {
+          finalMsg.mentions = message.mentions.map(m => ({ tag: String(m.tag), id: String(m.id) }));
+        }
+        // Remove any other field that could cause issues
       }
-      setTimeout(() => { if (!finished) { finished = true; reject(new Error("Send timeout")); } }, 30000);
-    } catch(e) { reject(e); }
+
+      try {
+        api.sendMessage(finalMsg, tid, finish);
+      } catch (e) {
+        // Fallback to plain text
+        if (typeof finalMsg === "object" && finalMsg.body) {
+          try { api.sendMessage(finalMsg.body, tid, finish); }
+          catch (e2) { return finish(e2); }
+        } else {
+          return finish(e);
+        }
+      }
+
+      setTimeout(() => {
+        if (!finished) { finished = true; reject(new Error("Send timeout")); }
+      }, 30000);
+    } catch (e) { reject(e); }
   });
 }
+
 async function sendPhotoMessageSafe(api, threadID, text) {
   const tid = String(threadID).trim();
-  try { return await sendMessageSafe(api, text, tid); }
-  catch(e) { log(`  ⚠️ Text fail: ${e.message}`); }
+
+  // Try 1: Text only (always safest)
+  try {
+    return await sendMessageSafe(api, text, tid);
+  } catch (e) {
+    log(`  ⚠️ Text fail: ${e.message}`);
+  }
+
+  // Try 2: Photo + text
   if (fs.existsSync(BOT_DP_PATH)) {
     try {
       const stream = fs.createReadStream(BOT_DP_PATH);
       return await sendMessageSafe(api, { body: text, attachment: stream }, tid);
-    } catch(e) { log(`  ⚠️ Photo fail: ${e.message}`); }
+    } catch (e) {
+      log(`  ⚠️ Photo fail: ${e.message}`);
+    }
   }
+
   throw new Error("All send attempts failed");
 }
+
 function getUserInfoSafe(api, uid) {
   return new Promise(resolve => {
     uid = cleanID(uid);
@@ -626,7 +657,9 @@ function unsendSafe(api, mid) {
   try { if (api && typeof api.unsendMessage === "function") api.unsendMessage(cleanID(mid), () => {}); } catch(_) {}
 }
 
-// ================= STARTUP MESSAGE =================
+// ============================================================
+// =============== STARTUP MESSAGE ============================
+// ============================================================
 const LIVE_MESSAGE =
 `╔═══════════════════════════════╗
 ║  🤍🩷 𝐑𝐊 𝐑𝐀𝐉𝐀 𝐗𝐖𝐃 🩷🤍  ║
@@ -665,12 +698,15 @@ ${BOT_NAME}
 🤍🩷 𝐑𝐊 𝐑𝐀𝐉𝐀 𝐗𝐖𝐃 🤍🩷
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
-// ================= ANNOUNCE =================
+// ============================================================
+// =============== ANNOUNCEMENT ===============================
+// ============================================================
 async function announceBotOnline(api) {
   try {
     log("━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     log("📸 PHOTO CHECK");
     const exists = fs.existsSync(BOT_DP_PATH);
+    log(`   Path: ${BOT_DP_PATH}`);
     log(`   Exists: ${exists}`);
     if (exists) {
       const s = fs.statSync(BOT_DP_PATH);
@@ -706,22 +742,27 @@ async function announceBotOnline(api) {
     state.stats.groups = groups.length;
     if (!groups.length) { log("⚠️ Koi group nahi mila."); return; }
 
+    log(`📢 Sending to ${groups.length} groups...`);
     for (let i = 0; i < groups.length; i++) {
       const tid = groups[i];
       log(`  📤 [${i+1}/${groups.length}] → ${tid}`);
       try {
-        let sent = false;
-        try { await sendMessageSafe(api, LIVE_MESSAGE, tid); sent = true; log(`  ✅ Sent`); }
-        catch(e1) { log(`  ⚠️ Text fail: ${e1.message}`); }
-        if (!sent && exists) {
+        // Text only — no attachment for 100% success
+        await sendMessageSafe(api, LIVE_MESSAGE, tid);
+        log(`  ✅ Sent`);
+      } catch (e1) {
+        log(`  ⚠️ Text fail: ${e1.message}`);
+        // Photo fallback
+        if (exists) {
           try {
             const stream = fs.createReadStream(BOT_DP_PATH);
             await sendMessageSafe(api, { body: LIVE_MESSAGE, attachment: stream }, tid);
-            sent = true; log(`  ✅ Photo+text sent`);
-          } catch(e2) { log(`  ⚠️ Photo fail: ${e2.message}`); }
+            log(`  ✅ Photo+text sent`);
+          } catch (e2) {
+            log(`  ❌ Failed: ${e2.message}`);
+          }
         }
-        if (!sent) log(`  ❌ Failed all attempts`);
-      } catch(e) { log(`  ❌ ${e.message}`); }
+      }
       await new Promise(r => setTimeout(r, 5000));
     }
     log("🎉 Announcement complete");
@@ -729,7 +770,9 @@ async function announceBotOnline(api) {
   } catch(e) { log(`Announce err: ${e.message}`); }
 }
 
-// ================= LEVEL =================
+// ============================================================
+// =============== LEVEL ======================================
+// ============================================================
 function getLevel(xp) { return Math.floor(Math.sqrt(xp / 50)) + 1; }
 function xpForNext(l) { return 50 * l * l; }
 function addXP(uid, amt = 10) {
@@ -739,7 +782,9 @@ function addXP(uid, amt = 10) {
   return state.levels[uid];
 }
 
-// ================= NAMES =================
+// ============================================================
+// =============== NAMES ======================================
+// ============================================================
 async function getDisplayName(api, uid) {
   uid = cleanID(uid);
   if (!uid) return "User";
@@ -752,17 +797,32 @@ async function getGroupName(api, tid) {
   return info?.threadName || info?.name || "Facebook Group";
 }
 
-// ================= UID CARD =================
+// ============================================================
+// =============== UID CARD ===================================
+// ============================================================
 async function sendUIDCard(api, tid, uid) {
   uid = cleanID(uid);
   const name = await getDisplayName(api, uid);
   const u = state.levels[uid] || { xp: 0, level: 1 };
   const profileUrl = `https://www.facebook.com/${uid}`;
-  const text = `👑 𝐌𝐀𝐈 𝐑𝐊 𝐑𝐀𝐉𝐀 𝐇𝐔 👑\n\n${BOT_NAME}\n\n👤 𝐍𝐚𝐦𝐞 : ${name}\n🆔 𝐔𝐈𝐃 : ${uid}\n🔗 𝐏𝐫𝐨𝐟𝐢𝐥𝐞 : ${profileUrl}\n🏆 𝐋𝐞𝐯𝐞𝐥 : ${u.level}\n⚡ 𝐗𝐏 : ${u.xp}\n\n📲 𝐉𝐨𝐢𝐧𝐞 𝐦𝐲 𝐆𝐂 𝐓𝐆 ❤️\n${TELEGRAM_LINK}`;
+  const text = `👑 𝐌𝐀𝐈 𝐑𝐊 𝐑𝐀𝐉𝐀 𝐇𝐔 👑
+
+${BOT_NAME}
+
+👤 𝐍𝐚𝐦𝐞 : ${name}
+🆔 𝐔𝐈𝐃 : ${uid}
+🔗 𝐏𝐫𝐨𝐟𝐢𝐥𝐞 : ${profileUrl}
+🏆 𝐋𝐞𝐯𝐞𝐥 : ${u.level}
+⚡ 𝐗𝐏 : ${u.xp}
+
+📲 𝐉𝐨𝐢𝐧𝐞 𝐦𝐲 𝐆𝐂 𝐓𝐆 ❤️
+${TELEGRAM_LINK}`;
   try { await sendMessageSafe(api, text, tid); } catch(e) { log(`UID err: ${e.message}`); }
 }
 
-// ================= CUTE DP =================
+// ============================================================
+// =============== CUTE DP ====================================
+// ============================================================
 async function sendCuteDP(api, tid, uid) {
   uid = cleanID(uid);
   const name = await getDisplayName(api, uid);
@@ -770,12 +830,24 @@ async function sendCuteDP(api, tid, uid) {
   const rem = Math.max(0, xpForNext(u.level) - u.xp);
   const shayari = getShayari();
   const emoji = rand(["🥰","😍","💕","💖","✨","🌸","💘","😘"]);
-  const text = `${emoji} @${name} ${emoji}\n\n${shayari}\n\n╭─❰ 📊 PLAYER STATS ❱─╮\n│ 🎖️ Level : ${u.level}\n│ ⚡ XP : ${u.xp}\n│ 🎯 Next : ${rem} XP\n╰────────────────────╯\n\n📲 ${TELEGRAM_LINK}`;
+  const text = `${emoji} @${name} ${emoji}
+
+${shayari}
+
+╭─❰ 📊 PLAYER STATS ❱─╮
+│ 🎖️ Level : ${u.level}
+│ ⚡ XP : ${u.xp}
+│ 🎯 Next : ${rem} XP
+╰────────────────────╯
+
+📲 ${TELEGRAM_LINK}`;
   try { await sendMessageSafe(api, { body: text, mentions: [{ tag: `@${name}`, id: uid }] }, tid); }
   catch(e) { log(`Cute err: ${e.message}`); }
 }
 
-// ================= WELCOME =================
+// ============================================================
+// =============== WELCOME ====================================
+// ============================================================
 async function sendWelcomeMessage(api, tid, targetUID) {
   targetUID = cleanID(targetUID);
   if (!targetUID) return;
@@ -796,19 +868,62 @@ async function sendWelcomeMessage(api, tid, targetUID) {
     if (ginfo) groupName = ginfo.threadName || ginfo.name || groupName;
   } catch(_){}
   const u = state.levels[targetUID] || { xp: 0, level: 1 };
-  const text = `${header}\n\n@${name} 💕\n\n${shayari}\n\n╭─❰ 🎊 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐓𝐎 🎊 ❱─╮\n│ 📌 ${groupName}\n╰────────────────────╯\n\n👤 𝐍𝐚𝐦𝐞 : ${name}\n🆔 𝐔𝐈𝐃 : ${targetUID}\n🔗 𝐏𝐫𝐨𝐟𝐢𝐥𝐞 : ${profileUrl}${bio ? `\n📝 𝐁𝐢𝐨 : ${bio}` : ""}\n🎖️ 𝐋𝐞𝐯𝐞𝐥 : ${u.level}\n⚡ 𝐗𝐏 : ${u.xp}\n\n📲 𝐉𝐨𝐢𝐧𝐞 𝐦𝐲 𝐆𝐂 𝐓𝐆 ❤️\n${TELEGRAM_LINK}`;
+  const text = `${header}
+
+@${name} 💕
+
+${shayari}
+
+╭─❰ 🎊 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐓𝐎 🎊 ❱─╮
+│ 📌 ${groupName}
+╰────────────────────╯
+
+👤 𝐍𝐚𝐦𝐞 : ${name}
+🆔 𝐔𝐈𝐃 : ${targetUID}
+🔗 𝐏𝐫𝐨𝐟𝐢𝐥𝐞 : ${profileUrl}${bio ? `\n📝 𝐁𝐢𝐨 : ${bio}` : ""}
+🎖️ 𝐋𝐞𝐯𝐞𝐥 : ${u.level}
+⚡ 𝐗𝐏 : ${u.xp}
+
+📲 𝐉𝐨𝐢𝐧𝐞 𝐦𝐲 𝐆𝐂 𝐓𝐆 ❤️
+${TELEGRAM_LINK}`;
   try {
     await sendMessageSafe(api, { body: text, mentions: [{ tag: `@${name}`, id: targetUID }] }, tid);
     log(`👋 Welcome: ${name}`);
   } catch(e) { log(`Welcome err: ${e.message}`); }
 }
 
-// ================= HELP =================
+// ============================================================
+// =============== HELP =======================================
+// ============================================================
 function helpText() {
-  return `🤍🩷 RK RAJA XWD BOT 🩷🤍\n\n💬 USER\nhi, hello, shayari, joke, flirt, dp, uid, couple, welcome, music, song, cute, level, xp, rank, status, bot, rules, help\n\n🔐 ADMIN\nlockname on <name> / off\nlocknick on <nick> / off\nmsglock on/off\nspamlock on/off\nunlock all\nreset\nstats\nbroadcast <msg>\nfytfile <filename>\nfyt on/off\n\n📲 ${TELEGRAM_LINK}`;
+  return `🤍🩷 RK RAJA XWD BOT 🩷🤍
+
+💬 USER COMMANDS
+hi, hello, shayari, joke, flirt
+dp, uid, couple, welcome
+music <song>, song <song>
+cute, level, xp, rank
+status, bot, rules, help
+welcome @user
+
+🔐 ADMIN COMMANDS
+lockname on <name> / off
+locknick on <nick> / off
+msglock on/off
+spamlock on/off
+unlock all
+reset
+stats
+broadcast <msg>
+fytfile <filename>
+fyt on/off
+
+📲 ${TELEGRAM_LINK}`;
 }
 
-// ================= FYT =================
+// ============================================================
+// =============== FYT ========================================
+// ============================================================
 function readFYTLines() {
   try {
     if (!fs.existsSync(FYT_PATH)) return [];
@@ -847,7 +962,9 @@ function loadUploadedFYT(name) {
   return true;
 }
 
-// ================= LOCKS =================
+// ============================================================
+// =============== LOCKS ======================================
+// ============================================================
 async function applyNicknameLock(api, tid) {
   tid = cleanID(tid);
   const lock = state.locks.nicknames[tid];
@@ -875,10 +992,7 @@ async function handleMessageLock(api, event) {
   const key = `${tid}:${event.senderID}`;
   state.spam[key] = (state.spam[key] || 0) + 1;
   if (state.spam[key] === 1) { try { await sendMessageSafe(api, "🔒 Message Lock ON", tid); } catch(_){} }
-  if (state.spam[key] >= KICK_LIMIT) {
-    state.spam[key] = 0;
-    await removeUserSafe(api, event.senderID, tid);
-  }
+  if (state.spam[key] >= KICK_LIMIT) { state.spam[key] = 0; await removeUserSafe(api, event.senderID, tid); }
   return true;
 }
 async function handleSpamLock(api, event) {
@@ -892,45 +1006,72 @@ async function handleSpamLock(api, event) {
   const key = `${tid}:${event.senderID}`;
   state.spam[key] = (state.spam[key] || 0) + 1;
   if (state.spam[key] === 1) { try { await sendMessageSafe(api, "🚫 Spam allowed nahi!", tid); } catch(_){} }
-  if (state.spam[key] >= KICK_LIMIT) {
-    state.spam[key] = 0;
-    await removeUserSafe(api, event.senderID, tid);
-  }
+  if (state.spam[key] >= KICK_LIMIT) { state.spam[key] = 0; await removeUserSafe(api, event.senderID, tid); }
   return true;
 }
 
-// ================= MUSIC =================
+// ============================================================
+// =============== MUSIC ======================================
+// ============================================================
 async function sendMusic(api, tid, query) {
   query = String(query || "").trim();
   if (!query) return sendMessageSafe(api, "🎵 Use: music <song name>", tid);
   const q = encodeURIComponent(query);
-  const text = `🎵 𝐒𝐎𝐍𝐆 𝐒𝐄𝐀𝐑𝐂𝐇 🎵\n\n🔍 ${query}\n\n🔗 YouTube: https://www.youtube.com/results?search_query=${q}\n🔗 Spotify: https://open.spotify.com/search/${q}\n🔗 JioSaavn: https://www.jiosaavn.com/search/${q}\n\n📲 ${TELEGRAM_LINK}`;
+  const text = `🎵 𝐒𝐎𝐍𝐆 𝐒𝐄𝐀𝐑𝐂𝐇 🎵
+
+🔍 ${query}
+
+🔗 YouTube: https://www.youtube.com/results?search_query=${q}
+🔗 Spotify: https://open.spotify.com/search/${q}
+🔗 JioSaavn: https://www.jiosaavn.com/search/${q}
+
+📲 ${TELEGRAM_LINK}`;
   return sendMessageSafe(api, text, tid);
 }
 
-// ================= COMMANDS =================
-const USER_COMMANDS = new Set(["help","menu","shayari","shayri","sher","joke","jokes","hasao","flirt","flirting","dp","profile","uid","userid","id","couple","welcome","status","ping","bot","song","video","music","rules","level","xp","rank","cute"]);
+// ============================================================
+// =============== COMMANDS ===================================
+// ============================================================
+const USER_COMMANDS = new Set([
+  "help","menu","shayari","shayri","sher","joke","jokes","hasao",
+  "flirt","flirting","dp","profile","uid","userid","id","couple","welcome",
+  "status","ping","bot","song","video","music","rules","level","xp","rank","cute",
+  "hi","hii","hiii","hiiii","helo","hlo","hello","hellow","hey","heyy","heyyy",
+  "gm","gn","ga","ge",
+  "love","kiss","hug","mwah","muaah",
+  "bye","goodbye","thanks","thankyou","sorry","maaf",
+  "babu","sona","jaan","jaanu","cutie","baby","dear","honey","shona"
+]);
 const ADMIN_COMMANDS = new Set(["fyt","fytfile","fytclear","fytinterval","nickname","locknick","groupname","lockname","msglock","spamlock","unlock","reset","stats","broadcast"]);
 function isKnownCommand(c) { return USER_COMMANDS.has(c) || ADMIN_COMMANDS.has(c); }
+
 function parseCommand(text) {
   const raw = String(text || "").trim();
   if (!raw) return null;
+
+  // Prefix check
   const first = raw.split(/\s+/)[0];
-  if (first.startsWith("#") || first.startsWith("/") || first.startsWith(".")) {
-    const without = raw.substring(1).trim();
-    const parts = without.split(/\s+/);
-    const cmd = (parts.shift() || "").toLowerCase();
-    if (!isKnownCommand(cmd)) return null;
-    return { command: cmd, args: parts.join(" "), prefixed: true };
+  if (first.startsWith("#") || first.startsWith("/") || first.startsWith(".") || first.startsWith("@")) {
+    const without = first.substring(1).toLowerCase();
+    const rest = raw.split(/\s+/).slice(1).join(" ");
+    if (isKnownCommand(without)) {
+      return { command: without, args: rest, prefixed: true };
+    }
+    return { command: "auto", args: without + " " + rest, prefixed: true, raw: (without + " " + rest).trim() };
   }
+
+  // Plain command
   const parts = raw.split(/\s+/);
-  let cmd = parts.shift().toLowerCase();
-  if (cmd.startsWith("@")) cmd = cmd.substring(1);
-  if (!isKnownCommand(cmd)) return null;
-  return { command: cmd, args: parts.join(" "), prefixed: false };
+  const cmd = parts.shift().toLowerCase();
+  if (isKnownCommand(cmd)) {
+    return { command: cmd, args: parts.join(" "), prefixed: false };
+  }
+  return { command: "auto", args: raw, prefixed: false, raw: raw };
 }
 
-// ================= ADMIN HANDLER =================
+// ============================================================
+// =============== ADMIN HANDLER ==============================
+// ============================================================
 async function handleAdminCommand(api, event, command, args) {
   const tid = cleanID(event.threadID);
   const sender = cleanID(event.senderID);
@@ -947,7 +1088,7 @@ async function handleAdminCommand(api, event, command, args) {
     const name = (m[2] || "RK RAJA XWD").trim();
     const ok = await setTitleSafe(api, name, tid);
     state.locks.groupNames[tid] = { name };
-    await sendMessageSafe(api, `🔒 Name Locked: "${name}" ${ok ? "✅" : "⚠️"}`, tid);
+    await sendMessageSafe(api, `🔒 Name Locked: "${name}" ${ok ? "✅" : "⚠️ bot admin banao"}`, tid);
     return true;
   }
   if (command === "locknick") {
@@ -993,7 +1134,14 @@ async function handleAdminCommand(api, event, command, args) {
   }
   if (command === "stats") {
     const up = state.stats.startedAt ? Math.floor((Date.now() - state.stats.startedAt) / 1000) : 0;
-    await sendMessageSafe(api, `🤖 STATS\n🟢 Running: ${state.running}\n👤 BotID: ${state.botID}\n👑 Admin: ${state.adminID}\n💬 Msg: ${state.stats.messages}\n⚡ Cmd: ${state.stats.commands}\n👥 Groups: ${state.stats.groups}\n⏱ Uptime: ${up}s`, tid);
+    await sendMessageSafe(api, `🤖 STATS
+🟢 Running: ${state.running}
+👤 BotID: ${state.botID}
+👑 Admin: ${state.adminID}
+💬 Msg: ${state.stats.messages}
+⚡ Cmd: ${state.stats.commands}
+👥 Groups: ${state.stats.groups}
+⏱ Uptime: ${up}s`, tid);
     return true;
   }
   if (command === "broadcast") {
@@ -1005,7 +1153,7 @@ async function handleAdminCommand(api, event, command, args) {
       if (!target) continue;
       try { await sendMessageSafe(api, args.trim(), target); sent++; await new Promise(r => setTimeout(r, 2000)); } catch(_){}
     }
-    await sendMessageSafe(api, `📢 Sent to ${sent}`, tid);
+    await sendMessageSafe(api, `📢 Sent to ${sent} groups`, tid);
     return true;
   }
   if (command === "fyt") {
@@ -1036,11 +1184,26 @@ async function handleAdminCommand(api, event, command, args) {
   return false;
 }
 
-// ================= USER HANDLER =================
+// ============================================================
+// =============== USER HANDLER ===============================
+// ============================================================
 async function handleUserCommand(api, event, command, args) {
   const tid = cleanID(event.threadID);
   const sender = cleanID(event.senderID);
   state.stats.commands++;
+
+  // Greetings
+  const GREETINGS = ["hi","hii","hiii","hiiii","helo","hlo","hello","hellow","hey","heyy","heyyy","gm","gn","ga","ge","love","kiss","hug","mwah","muaah","bye","goodbye","thanks","thankyou","sorry","maaf","babu","sona","jaan","jaanu","cutie","baby","dear","honey","shona"];
+  if (GREETINGS.includes(command)) {
+    const name = await getDisplayName(api, sender);
+    const reply = getAutoReply(command) || getAutoReply(command + " " + (args || ""));
+    if (reply) {
+      await sendMessageSafe(api, `@${name} ${reply}`, tid);
+      return true;
+    }
+    await sendMessageSafe(api, `@${name} haan bolo jaan 💕 kya chahiye?\n• shayari\n• joke\n• dp\n• music`, tid);
+    return true;
+  }
 
   if (command === "help" || command === "menu") { await sendMessageSafe(api, helpText(), tid); return true; }
   if (command === "shayari" || command === "shayri" || command === "sher") {
@@ -1087,7 +1250,9 @@ async function handleUserCommand(api, event, command, args) {
   return false;
 }
 
-// ================= MESSAGE HANDLER =================
+// ============================================================
+// =============== MESSAGE HANDLER (100% reply) ===============
+// ============================================================
 async function handleMessage(api, event) {
   if (!event || !event.threadID || !event.senderID) return;
   state.stats.messages++;
@@ -1105,63 +1270,80 @@ async function handleMessage(api, event) {
 
   const parsed = parseCommand(text);
   const called = isBotCalled(text);
+  const name = await getDisplayName(api, sender);
 
+  // 1. Command handling
   if (parsed) {
     if (ADMIN_COMMANDS.has(parsed.command)) { await handleAdminCommand(api, event, parsed.command, parsed.args); return; }
     if (USER_COMMANDS.has(parsed.command)) { await handleUserCommand(api, event, parsed.command, parsed.args); return; }
+    if (parsed.command === "auto") {
+      const reply = getAutoReply(parsed.raw || text);
+      if (reply) { await sendMessageSafe(api, `@${name} ${reply}`, tid); return; }
+    }
   }
 
-  if (HUMAN_MODE) {
-    const name = await getDisplayName(api, sender);
-
-    if (/shayari|shayri|sher|sheri|poetry/i.test(text)) {
-      const s = getShayari();
-      const att = createPhotoAttachment();
-      const body = `@${name} ${s}\n\n📲 ${TELEGRAM_LINK}\n❥ RK RAJA XWD ❥`;
-      if (att) {
-        try { await sendMessageSafe(api, { body, attachment: att, mentions: [{ tag: `@${name}`, id: sender }] }, tid); }
-        catch(e) { await sendMessageSafe(api, body, tid); }
-      } else { await sendMessageSafe(api, body, tid); }
-      return;
-    }
-
-    const humanReply = getAutoReply(text);
-    if (humanReply) {
-      const n = normalizeText(text);
-      const greetings = ["hi","hii","hiii","hello","hey","heyy","gm","gn","good morning","good night"];
-      const final = greetings.includes(n) ? `@${name} ${humanReply}` : humanReply;
-      await sendMessageSafe(api, final, tid);
-      return;
-    }
-
-    if (called) {
-      const defaults = [
-        `@${name} haan bolo jaan 💕 kya chahiye?\n• shayari\n• joke\n• dp\n• music`,
-        `@${name} bolo babu 🥰 kya karna hai?`,
-        `@${name} haan jaan 😘 mai sun raha hu`
-      ];
-      await sendMessageSafe(api, rand(defaults), tid);
-      return;
-    }
-
-    if (Math.random() < 0.35) {
-      const fb = ["Hmm bolo na babu 💕","Kya hua jaan? 🥰","Achha 😊 aur batao?","Sahi hai sona 😘","Haan haan bolo 😌","Kya keh rahe ho jaan? 💗","Theek hai babu 🥰","Aur sunao? 😘","Interesting 💕","Bolo na aur kya? 🥺"];
-      await sendMessageSafe(api, rand(fb), tid);
-    }
+  // 2. Shayari keyword
+  if (/shayari|shayri|sher|sheri|poetry/i.test(text)) {
+    const s = getShayari();
+    const att = createPhotoAttachment();
+    const body = `@${name} ${s}\n\n📲 ${TELEGRAM_LINK}\n❥ RK RAJA XWD ❥`;
+    if (att) {
+      try { await sendMessageSafe(api, { body, attachment: att, mentions: [{ tag: `@${name}`, id: sender }] }, tid); }
+      catch(e) { await sendMessageSafe(api, body, tid); }
+    } else { await sendMessageSafe(api, body, tid); }
     return;
   }
 
-  if (!called) return;
-  const reply = getAutoReply(text);
-  if (reply) {
-    const name = await getDisplayName(api, sender);
+  // 3. Auto reply keyword
+  const humanReply = getAutoReply(text);
+  if (humanReply) {
     const n = normalizeText(text);
-    const final = ["hi","hello","hii","hey"].includes(n) ? `@${name} ${reply}` : reply;
+    const greetings = ["hi","hii","hiii","hello","hey","heyy","gm","gn","good morning","good night"];
+    const final = greetings.includes(n) ? `@${name} ${humanReply}` : humanReply;
     await sendMessageSafe(api, final, tid);
+    return;
   }
+
+  // 4. Bot name called
+  if (called) {
+    const defaults = [
+      `@${name} haan bolo jaan 💕 kya chahiye?\n• shayari\n• joke\n• dp\n• music`,
+      `@${name} bolo babu 🥰 kya karna hai?`,
+      `@${name} haan jaan 😘 mai sun raha hu`
+    ];
+    await sendMessageSafe(api, rand(defaults), tid);
+    return;
+  }
+
+  // 5. ✅ 100% RANDOM HUMAN REPLY
+  const randomReplies = [
+    `@${name} haan bolo jaan 💕 kya keh rahe ho?`,
+    `@${name} hmm bolo na babu 🥰`,
+    `@${name} kya hua jaan? 😘 batao na`,
+    `@${name} achha 😊 aur batao?`,
+    `@${name} sahi hai sona 💗`,
+    `@${name} haan haan bolo 😌`,
+    `@${name} kya keh rahe ho jaan? 💕`,
+    `@${name} theek hai babu 🥰`,
+    `@${name} aur sunao? 😘`,
+    `@${name} interesting 💕 bolo na`,
+    `@${name} kya baat hai jaan 🥰`,
+    `@${name} haan babu 😊 mai sun raha hu`,
+    `@${name} kuch aur batao 💗`,
+    `@${name} haan jaan 😘 bolo`,
+    `@${name} achha achha 🥰`,
+    `@${name} samajh gaya babu 💕`,
+    `@${name} aur kya haal hai? 😊`,
+    `@${name} haan sona bolo 😘`,
+    `@${name} kya chahiye jaan? 💗`,
+    `@${name} haan bolo babu 🥰`
+  ];
+  await sendMessageSafe(api, rand(randomReplies), tid);
 }
 
-// ================= EVENT HANDLER =================
+// ============================================================
+// =============== EVENT HANDLER ==============================
+// ============================================================
 async function handleEvent(api, event) {
   try {
     if (!event) return;
@@ -1216,7 +1398,9 @@ async function handleEvent(api, event) {
   } catch (e) { log(`Handler err: ${e.message}`); }
 }
 
-// ================= COOKIES =================
+// ============================================================
+// =============== COOKIES ====================================
+// ============================================================
 function parseCookies(input) {
   if (!input) return null;
   if (Array.isArray(input)) return input;
@@ -1258,7 +1442,9 @@ function buildLoginOptions(cookies) {
   return o;
 }
 
-// ================= INIT =================
+// ============================================================
+// =============== BOT INIT ===================================
+// ============================================================
 function initializeBot(input) {
   if (!login) { log("❌ FCA nahi mila"); return; }
   const cookies = parseCookies(input);
@@ -1314,7 +1500,9 @@ function stopBot() {
   log("⛔ Bot stopped");
 }
 
-// ================= ROUTES =================
+// ============================================================
+// =============== ROUTES =====================================
+// ============================================================
 app.post("/configure", (req, res) => {
   try {
     const b = req.body || {};
@@ -1342,7 +1530,7 @@ app.post("/start", (req, res) => {
 
 app.post("/stop", (req, res) => { stopBot(); res.json({ success: true }); });
 
-// PHOTO UPLOAD
+// PHOTO
 app.post("/upload-photo", (req, res) => {
   try {
     const base64 = req.body?.image;
@@ -1409,6 +1597,9 @@ app.get("/", (req, res) => {
   res.send("<h2>RK RAJA XWD BOT running ✅</h2>");
 });
 
+// ============================================================
+// =============== SERVER START ===============================
+// ============================================================
 server.listen(PORT, () => {
   console.log("");
   console.log("╔════════════════════════════╗");
